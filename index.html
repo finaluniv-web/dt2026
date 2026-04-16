@@ -1,3 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FINAL 파이널체대입시 - 학생 기록지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#111827;--accent:#4f46e5;--accent2:#ec4899;--accent3:#06b6d4;--accent4:#10b981;--accent5:#f59e0b;--bg:#f3f4f6;--card:#fff;--radius:16px;--shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--primary);min-height:100vh;-webkit-font-smoothing:antialiased}
+#loading{position:fixed;inset:0;background:var(--primary);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s}
+#loading.hide{opacity:0;pointer-events:none}
+.ld-ring{width:40px;height:40px;border:3px solid rgba(255,255,255,.08);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{color:#666;margin-top:12px;font-size:12px}
+.wrap{max-width:640px;margin:0 auto;padding:16px}
+.profile-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.profile-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #f0f0f4}
+.profile-header-left{display:flex;align-items:center;gap:10px}
+.profile-header img{height:26px}
+.profile-header .logo-text{font-size:17px;font-weight:900;letter-spacing:-1px;color:var(--primary)}
+.campus-badge{background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:5px;letter-spacing:.3px}
+.profile-body{padding:20px;display:flex;align-items:center;gap:14px}
+.p-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 3px 12px rgba(79,70,229,.25);letter-spacing:-0.5px}
+.p-info{flex:1}
+.p-name{font-size:20px;font-weight:800;color:var(--primary);letter-spacing:-.5px}
+.p-sub{font-size:12px;color:#9ca3af;margin-top:2px}
+.profile-footer{padding:0 20px 16px;display:flex;gap:6px;flex-wrap:wrap}
+.p-tag{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:20px;padding:4px 11px;font-size:10px;color:#6b7280;font-weight:500}
+.p-tag b{color:var(--accent);font-weight:700}
+.p-tag.class-tag{background:#eef2ff;border-color:#c7d2fe;color:var(--accent);font-weight:700}
+.tab-wrap{background:#fff;border-radius:12px;padding:4px;margin-bottom:16px;display:flex;gap:4px;box-shadow:var(--shadow)}
+.tab-btn{flex:1;padding:10px 0;border:none;border-radius:10px;background:transparent;font-size:13px;font-weight:600;cursor:pointer;color:#9ca3af;font-family:inherit;transition:all .2s;text-align:center}
+.tab-btn.on{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.tab-btn:active{transform:scale(.97)}
+.pane{display:none}.pane.on{display:block}
+.card{background:var(--card);border-radius:var(--radius);padding:20px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-title{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-red{background:var(--accent2)}.dot-purple{background:var(--accent)}.dot-blue{background:var(--accent3)}.dot-green{background:var(--accent4)}.dot-yellow{background:var(--accent5)}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat-box{background:#fff;border-radius:12px;padding:14px 10px;text-align:center;border:1px solid #f0f0f4;box-shadow:0 1px 4px rgba(0,0,0,.03)}
+.stat-box .sl{font-size:10px;color:#9ca3af;margin-bottom:2px;font-weight:500}
+.stat-box .sv{font-size:20px;font-weight:800;color:var(--primary)}
+.stat-box .su{font-size:9px;color:#d1d5db;margin-top:1px}
+.sv.up{color:var(--accent2)}.sv.dn{color:var(--accent3)}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -20px;padding:0 20px}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;min-width:580px}
+.tbl th{background:#f9fafb;padding:10px 8px;text-align:center;font-weight:600;color:#6b7280;border-bottom:2px solid #e5e7eb;white-space:nowrap;position:sticky;top:0;font-size:10px}
+.tbl td{padding:10px 8px;text-align:center;border-bottom:1px solid #f3f4f6;color:#374151;font-size:11px}
+.tbl tbody tr:hover{background:#f9fafb}
+.tbl .dt{color:#9ca3af;font-size:10px;font-weight:500}
+.chg-up{display:inline-block;color:#ec4899;font-weight:700;font-size:9px;background:#fdf2f8;padding:1px 5px;border-radius:4px;margin-top:2px}
+.chg-dn{display:inline-block;color:#06b6d4;font-weight:700;font-size:9px;background:#ecfeff;padding:1px 5px;border-radius:4px;margin-top:2px}
+.mock-list{display:flex;flex-direction:column;gap:10px}
+.m-card{background:#fff;border-radius:12px;padding:14px;border:1px solid #f0f0f4;box-shadow:0 1px 4px rgba(0,0,0,.03)}
+.m-card .m-exam{font-size:14px;font-weight:700;margin-bottom:10px}
+.m-subjects{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.m-subj{background:#f9fafb;border-radius:10px;padding:10px 8px;text-align:center;border:1px solid #e5e7eb}
+.m-subj .ms-name{font-size:9px;color:#9ca3af;margin-bottom:3px;font-weight:500}
+.m-subj .ms-grade{font-size:20px;font-weight:800}
+.m-subj .ms-detail{font-size:9px;color:#9ca3af;margin-top:2px}
+.mg1{color:#4f46e5}.mg2{color:#06b6d4}.mg3{color:#10b981}.mg4{color:#f59e0b}.mg5{color:#f97316}.mg6{color:#ef4444}.mg7{color:#dc2626}.mg8{color:#991b1b}.mg9{color:#6b7280}
+.gpa-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.gpa-card{background:#f9fafb;border-radius:14px;padding:20px 14px;text-align:center;border:1px solid #f0f0f4}
+.gpa-card .gc-label{font-size:10px;color:#9ca3af;margin-bottom:6px;font-weight:500}
+.gpa-card .gc-val{font-size:28px;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.gpa-card .gc-sub{font-size:9px;color:#d1d5db;margin-top:3px}
+.chart-box{position:relative;height:220px;margin-top:8px}
+.gb{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;border-radius:50%;font-size:11px;font-weight:700;color:#fff}
+.gb1{background:#4f46e5}.gb2{background:#06b6d4}.gb3{background:#10b981}.gb4{background:#f59e0b}.gb5{background:#f97316}.gb6{background:#ef4444}.gb7{background:#dc2626}.gb8{background:#991b1b}.gb9{background:#6b7280}
+@media(max-width:400px){
+  .wrap{padding:10px}.profile-body{padding:16px}.p-name{font-size:18px}
+  .stat-grid{grid-template-columns:repeat(3,1fr);gap:6px}.stat-box{padding:10px 6px}.stat-box .sv{font-size:17px}
+  .tab-btn{font-size:11px;padding:8px 0}.chart-box{height:180px}
+  .profile-header img{height:22px}
+  .m-subjects{grid-template-columns:repeat(3,1fr)}
+}
+@media(min-width:641px){.stat-grid{grid-template-columns:repeat(4,1fr)}.m-subjects{grid-template-columns:repeat(6,1fr)}}
+@media print{body{background:#fff}.tab-wrap{display:none}.pane{display:block!important}}
+.no-data{text-align:center;padding:30px;color:#d1d5db;font-size:13px}
+.err-msg{color:var(--accent2);text-align:center;padding:40px;font-size:13px}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="ld-ring"></div><p>기록지를 불러오고 있습니다</p></div>
+
+<div class="wrap" id="app" style="opacity:0">
+
+  <div class="profile-card">
+    <div class="profile-header">
+      <div class="profile-header-left">
+        <img src="./logo.png" alt="FINAL 파이널체대입시" onerror="this.outerHTML='<span class=logo-text>FINAL 파이널체대입시</span>'">
+      </div>
+      <span class="campus-badge">동탄캠퍼스</span>
+    </div>
+    <div class="profile-body">
+      <div class="p-avatar" id="av"></div>
+      <div class="p-info"><div class="p-name" id="pName">-</div><div class="p-sub" id="pSub"></div></div>
+    </div>
+    <div class="profile-footer" id="pTags"></div>
+  </div>
+
+  <div class="tab-wrap">
+    <button class="tab-btn on" data-t="fitness">🏃 실기</button>
+    <button class="tab-btn" data-t="mock">📝 모의고사</button>
+    <button class="tab-btn" data-t="gpa">📊 내신</button>
+  </div>
+
+  <div class="pane on" id="p-fitness">
+    <div class="stat-grid" id="fitStats"></div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-red"></span>실기 테스트 기록</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr id="fitH"></tr></thead><tbody id="fitB"></tbody></table></div>
+      <div class="no-data" id="fitNone" style="display:none">실기 데이터가 없습니다.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-red"></span>총점 변화</div>
+      <div class="chart-box"><canvas id="fitTotalChart"></canvas></div>
+    </div>
+    <div id="fitItemCharts"></div>
+  </div>
+
+  <div class="pane" id="p-mock">
+    <div class="stat-grid" id="mockStats"></div>
+    <div class="mock-list" id="mockList"></div>
+    <div class="no-data" id="mockNone" style="display:none">모의고사 데이터가 없습니다.</div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title"><span class="dot dot-purple"></span>시험별 상세</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr id="mockH"></tr></thead><tbody id="mockB"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-purple"></span>전체 등급 변화</div>
+      <div class="chart-box"><canvas id="mockAllChart"></canvas></div>
+    </div>
+    <div id="mockSubjCharts"></div>
+  </div>
+
+  <div class="pane" id="p-gpa">
+    <div class="card">
+      <div class="card-title"><span class="dot dot-blue"></span>내신 성적</div>
+      <div class="gpa-grid" id="gpaGrid"></div>
+      <div class="no-data" id="gpaNone" style="display:none">내신 데이터가 없습니다.</div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 const SID='1JT-y2ZF6GLQD4ZYzP8yxFp6flxxc_F_vCMXGdY-gogs';
@@ -18,7 +169,6 @@ function makeLineOpts(reverse){
   };
 }
 
-/* ====== 프로필 ====== */
 function renderProfile(info,fc,mc){
   const n=info['이름']||studentName;
   const cls=info['수강반']||'';
@@ -34,7 +184,6 @@ function renderProfile(info,fc,mc){
   document.getElementById('pTags').innerHTML=h;
 }
 
-/* ====== 실기 ====== */
 function renderFitness(raw){
   const lines=raw.split('\n').filter(l=>l.trim());
   if(lines.length<2)return 0;
@@ -79,7 +228,6 @@ function renderFitness(raw){
 
   const dateLabels=rows.map(r=>fDate(r[0]));
 
-  // 총점 차트 (X축 = 날짜)
   new Chart(document.getElementById('fitTotalChart'),{
     type:'line',data:{labels:dateLabels,datasets:[{
       label:'총점',data:rows.map(r=>parseFloat(r[tI])||null),
@@ -89,11 +237,11 @@ function renderFitness(raw){
     }]},options:makeLineOpts(false)
   });
 
-  // ★ 종목별 차트 (X축 = 기록값+단위, 툴팁에 날짜·점수 표시)
+  /* ★ 수정1: 종목별 차트 X축 = 기록값+단위 */
   const container=document.getElementById('fitItemCharts');
   items.forEach(it=>{
     const scores=rows.map(r=>parseFloat(r[it.si])||null);
-    const recs=rows.map(r=>r[it.ri]?r[it.ri]+it.u:'');
+    const recs=rows.map(r=>r[it.ri]?(r[it.ri]+it.u):'');
     if(scores.every(v=>v===null))return;
 
     const card=document.createElement('div');card.className='card';
@@ -111,8 +259,8 @@ function renderFitness(raw){
         plugins:{legend:{display:false},
           tooltip:{backgroundColor:'rgba(17,24,39,.92)',titleFont:{size:12,family:'Noto Sans KR'},bodyFont:{size:11,family:'Noto Sans KR'},padding:10,cornerRadius:8,
             callbacks:{
-              title:ctx=>{const i=ctx[0].dataIndex;return fullDate(rows[i][0]);},
-              label:ctx=>{const i=ctx.dataIndex;return `기록: ${recs[i]} → 점수: ${scores[i]}점`;}
+              title:ctx=>{const idx=ctx[0].dataIndex;return fullDate(rows[idx][0]);},
+              label:ctx=>{const idx=ctx.dataIndex;return '기록: '+recs[idx]+' / 점수: '+scores[idx]+'점';}
             }
           }
         },
@@ -126,7 +274,6 @@ function renderFitness(raw){
   return rows.length;
 }
 
-/* ====== 모의고사 ====== */
 function renderMock(raw){
   const lines=raw.split('\n').filter(l=>l.trim());
   if(lines.length<2)return 0;
@@ -143,7 +290,7 @@ function renderMock(raw){
     {name:'한국사',sC:null,rC:27,tC:null,pC:null,gC:28,color:'#8b5cf6'},
   ];
 
-  // ★ 모의고사 카드: 6칸 고정, 영어·한국사도 동일 구조
+  /* ★ 수정2: s.sC / s.pC / s.tC 체크를 !== null 로 통일 */
   const list=document.getElementById('mockList');
   rows.forEach(c=>{
     const div=document.createElement('div');div.className='m-card';
@@ -153,13 +300,11 @@ function renderMock(raw){
       const sub=s.sC!==null?c[s.sC]:'';
       const rv=c[s.rC]||'';
       const pct=s.pC!==null?c[s.pC]:'';
-
       let detail='';
       if(rv){
         if(pct) detail=`${rv}점 / ${pct}%`;
         else detail=`${rv}점`;
       }
-
       if(g){
         sHTML+=`<div class="m-subj">
           <div class="ms-name">${s.name}${sub?'<br>'+sub:''}</div>
@@ -178,7 +323,6 @@ function renderMock(raw){
     list.appendChild(div);
   });
 
-  // 스탯
   const L=rows[rows.length-1],st=document.getElementById('mockStats');
   const mg=[9,14,16].map(i=>parseInt(L[i])).filter(g=>g>0);
   let s=`<div class="stat-box"><div class="sl">최근 시험</div><div class="sv" style="font-size:13px">${L[0]}</div></div>`;
@@ -186,7 +330,6 @@ function renderMock(raw){
   subjs.forEach(sj=>{const g=L[sj.gC];if(g)s+=`<div class="stat-box"><div class="sl">${sj.name}</div><div class="sv mg${g}">${g}</div><div class="su">등급</div></div>`});
   st.innerHTML=s;
 
-  // 상세 테이블
   const mH=document.getElementById('mockH');
   mH.innerHTML='<th>시험</th>';
   subjs.forEach(s=>{
@@ -211,7 +354,6 @@ function renderMock(raw){
 
   const labels=rows.map(r=>r[0]);
 
-  // 전체 등급 차트
   const allDS=subjs.filter(s=>s.name!=='한국사').map(s=>({
     label:s.name,data:rows.map(r=>parseInt(r[s.gC])||null),
     borderColor:s.color,backgroundColor:s.color+'18',
@@ -225,7 +367,6 @@ function renderMock(raw){
     })
   });
 
-  // 과목별 개별 차트
   const container=document.getElementById('mockSubjCharts');
   subjs.forEach(s=>{
     const data=rows.map(r=>parseInt(r[s.gC])||null);
@@ -266,7 +407,6 @@ function renderMock(raw){
   return rows.length;
 }
 
-/* ====== 내신 ====== */
 function renderGPA(gpa){
   const keys=['전과목','국영','국수영','국수영사','국수영과','영탐'];
   const labels=['전과목','국어·영어','국·수·영','국·수·영·사','국·수·영·과','영어·탐구'];
@@ -275,7 +415,6 @@ function renderGPA(gpa){
   keys.forEach((k,i)=>{const v=gpa[k];if(!v)return;g.innerHTML+=`<div class="gpa-card"><div class="gc-label">${labels[i]}</div><div class="gc-val">${v}</div><div class="gc-sub">등급</div></div>`});
 }
 
-/* ====== 탭 ====== */
 document.querySelectorAll('.tab-btn').forEach(b=>{
   b.addEventListener('click',()=>{
     document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('on'));
@@ -286,7 +425,6 @@ document.querySelectorAll('.tab-btn').forEach(b=>{
   });
 });
 
-/* ====== 실행 ====== */
 (async()=>{
   try{
     const [iT,fT,mT,gT]=await Promise.all([
@@ -310,3 +448,5 @@ document.querySelectorAll('.tab-btn').forEach(b=>{
   const a=document.getElementById('app');a.style.transition='opacity .5s';a.style.opacity='1';
 })();
 </script>
+</body>
+</html>
