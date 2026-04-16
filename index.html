@@ -59,11 +59,27 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
 .m-card{background:#fff;border-radius:12px;padding:14px;border:1px solid #f0f0f4;box-shadow:0 1px 4px rgba(0,0,0,.03)}
 .m-card .m-exam{font-size:14px;font-weight:700;margin-bottom:10px}
 .m-subjects{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.m-subj{background:#f9fafb;border-radius:10px;padding:10px 8px;text-align:center;border:1px solid #e5e7eb}
-.m-subj .ms-name{font-size:9px;color:#9ca3af;margin-bottom:3px;font-weight:500}
+.m-subj{background:#f9fafb;border-radius:10px;padding:10px 8px;text-align:center;border:1px solid #e5e7eb;display:flex;flex-direction:column;justify-content:center;min-height:90px}
+.m-subj .ms-name{font-size:9px;color:#9ca3af;margin-bottom:3px;font-weight:500;min-height:24px;display:flex;align-items:center;justify-content:center}
 .m-subj .ms-grade{font-size:20px;font-weight:800}
-.m-subj .ms-detail{font-size:9px;color:#9ca3af;margin-top:2px}
+.m-subj .ms-detail{font-size:9px;color:#9ca3af;margin-top:2px;min-height:14px}
 .mg1{color:#4f46e5}.mg2{color:#06b6d4}.mg3{color:#10b981}.mg4{color:#f59e0b}.mg5{color:#f97316}.mg6{color:#ef4444}.mg7{color:#dc2626}.mg8{color:#991b1b}.mg9{color:#6b7280}
+
+/* ★ 모의고사 상세: 카드형 세로 레이아웃 */
+.mock-detail-list{display:flex;flex-direction:column;gap:8px}
+.mock-detail-exam{background:#f9fafb;border-radius:12px;padding:14px;border:1px solid #f0f0f4}
+.mock-detail-exam .mde-title{font-size:12px;font-weight:700;color:var(--primary);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e5e7eb}
+.mock-detail-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f3f4f6}
+.mock-detail-row:last-child{border-bottom:none}
+.mdr-left{display:flex;align-items:center;gap:8px}
+.mdr-subj{font-size:12px;font-weight:700;color:var(--primary);min-width:42px}
+.mdr-select{font-size:10px;color:#9ca3af;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mdr-right{display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280}
+.mdr-right span{min-width:32px;text-align:right}
+.mdr-grade{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.mdr-grade.gb1{background:#4f46e5}.mdr-grade.gb2{background:#06b6d4}.mdr-grade.gb3{background:#10b981}.mdr-grade.gb4{background:#f59e0b}.mdr-grade.gb5{background:#f97316}.mdr-grade.gb6{background:#ef4444}.mdr-grade.gb7{background:#dc2626}.mdr-grade.gb8{background:#991b1b}.mdr-grade.gb9{background:#6b7280}
+.mdr-label{font-size:9px;color:#d1d5db;min-width:24px}
+
 .gpa-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .gpa-card{background:#f9fafb;border-radius:14px;padding:20px 14px;text-align:center;border:1px solid #f0f0f4}
 .gpa-card .gc-label{font-size:10px;color:#9ca3af;margin-bottom:6px;font-weight:500}
@@ -131,7 +147,7 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
     <div class="no-data" id="mockNone" style="display:none">모의고사 데이터가 없습니다.</div>
     <div class="card" style="margin-top:12px">
       <div class="card-title"><span class="dot dot-purple"></span>시험별 상세</div>
-      <div class="tbl-wrap"><table class="tbl"><thead><tr id="mockH"></tr></thead><tbody id="mockB"></tbody></table></div>
+      <div id="mockDetail"></div>
     </div>
     <div class="card">
       <div class="card-title"><span class="dot dot-purple"></span>전체 등급 변화</div>
@@ -227,7 +243,6 @@ function renderFitness(raw){
   });
 
   const dateLabels=rows.map(r=>fDate(r[0]));
-
   new Chart(document.getElementById('fitTotalChart'),{
     type:'line',data:{labels:dateLabels,datasets:[{
       label:'총점',data:rows.map(r=>parseFloat(r[tI])||null),
@@ -237,17 +252,14 @@ function renderFitness(raw){
     }]},options:makeLineOpts(false)
   });
 
-  /* ★ 수정1: 종목별 차트 X축 = 기록값+단위 */
   const container=document.getElementById('fitItemCharts');
   items.forEach(it=>{
     const scores=rows.map(r=>parseFloat(r[it.si])||null);
     const recs=rows.map(r=>r[it.ri]?(r[it.ri]+it.u):'');
     if(scores.every(v=>v===null))return;
-
     const card=document.createElement('div');card.className='card';
     card.innerHTML=`<div class="card-title"><span class="dot" style="background:${it.color}"></span>${it.name} <span style="font-weight:400;color:#9ca3af;font-size:12px">(${it.u})</span></div><div class="chart-box"><canvas></canvas></div>`;
     container.appendChild(card);
-
     new Chart(card.querySelector('canvas'),{
       type:'line',data:{labels:recs,datasets:[{
         label:it.name+' 점수',data:scores,
@@ -290,7 +302,7 @@ function renderMock(raw){
     {name:'한국사',sC:null,rC:27,tC:null,pC:null,gC:28,color:'#8b5cf6'},
   ];
 
-  /* ★ 수정2: s.sC / s.pC / s.tC 체크를 !== null 로 통일 */
+  /* ★ 카드: 6칸 고정, 모든 과목 동일 높이 */
   const list=document.getElementById('mockList');
   rows.forEach(c=>{
     const div=document.createElement('div');div.className='m-card';
@@ -300,11 +312,11 @@ function renderMock(raw){
       const sub=s.sC!==null?c[s.sC]:'';
       const rv=c[s.rC]||'';
       const pct=s.pC!==null?c[s.pC]:'';
-      let detail='';
-      if(rv){
-        if(pct) detail=`${rv}점 / ${pct}%`;
-        else detail=`${rv}점`;
-      }
+      /* ★ detail: 모든 과목 동일 형식 — 백분위 없으면 점수만, 줄 수 통일 */
+      let line1=rv?rv+'점':'';
+      let line2=pct?pct+'%':'';
+      let detail=line1&&line2?line1+' / '+line2:(line1||'-');
+
       if(g){
         sHTML+=`<div class="m-subj">
           <div class="ms-name">${s.name}${sub?'<br>'+sub:''}</div>
@@ -323,6 +335,7 @@ function renderMock(raw){
     list.appendChild(div);
   });
 
+  /* 스탯 */
   const L=rows[rows.length-1],st=document.getElementById('mockStats');
   const mg=[9,14,16].map(i=>parseInt(L[i])).filter(g=>g>0);
   let s=`<div class="stat-box"><div class="sl">최근 시험</div><div class="sv" style="font-size:13px">${L[0]}</div></div>`;
@@ -330,27 +343,35 @@ function renderMock(raw){
   subjs.forEach(sj=>{const g=L[sj.gC];if(g)s+=`<div class="stat-box"><div class="sl">${sj.name}</div><div class="sv mg${g}">${g}</div><div class="su">등급</div></div>`});
   st.innerHTML=s;
 
-  const mH=document.getElementById('mockH');
-  mH.innerHTML='<th>시험</th>';
-  subjs.forEach(s=>{
-    if(s.tC!==null) mH.innerHTML+=`<th>${s.name}</th><th>원점수</th><th>표준</th><th>백분위</th><th>등급</th>`;
-    else mH.innerHTML+=`<th>${s.name}<br>원점수</th><th>등급</th>`;
-  });
-  const mB=document.getElementById('mockB');
+  /* ★ 상세: 카드형 세로 레이아웃 (스크롤 불필요) */
+  const detailEl=document.getElementById('mockDetail');
+  let dHTML='<div class="mock-detail-list">';
   rows.forEach(c=>{
-    const tr=document.createElement('tr');
-    let h=`<td class="dt" style="white-space:nowrap">${c[0]}</td>`;
+    dHTML+=`<div class="mock-detail-exam"><div class="mde-title">${c[0]}</div>`;
     subjs.forEach(s=>{
       const g=parseInt(c[s.gC])||0;
-      const gb=g>=1&&g<=9?`gb${g}`:'';
-      if(s.tC!==null){
-        h+=`<td style="font-size:9px">${s.sC!==null?c[s.sC]:''}</td><td>${c[s.rC]||'-'}</td><td>${c[s.tC]||'-'}</td><td>${c[s.pC]||'-'}</td><td><span class="gb ${gb}">${g||'-'}</span></td>`;
-      }else{
-        h+=`<td>${c[s.rC]||'-'}</td><td><span class="gb ${gb}">${g||'-'}</span></td>`;
-      }
+      const gb=g>=1&&g<=9?'gb'+g:'gb9';
+      const sub=s.sC!==null?c[s.sC]:'';
+      const rv=c[s.rC]||'-';
+      const std=s.tC!==null?(c[s.tC]||'-'):'';
+      const pct=s.pC!==null?(c[s.pC]||'-'):'';
+
+      dHTML+=`<div class="mock-detail-row">
+        <div class="mdr-left">
+          <span class="mdr-subj">${s.name}</span>
+          <span class="mdr-select">${sub}</span>
+        </div>
+        <div class="mdr-right">
+          <span class="mdr-label">원점수</span><span>${rv}</span>`;
+      if(s.tC!==null) dHTML+=`<span class="mdr-label">표준</span><span>${std}</span><span class="mdr-label">백분위</span><span>${pct}</span>`;
+      dHTML+=`<span class="mdr-grade ${gb}">${g||'-'}</span>
+        </div>
+      </div>`;
     });
-    tr.innerHTML=h;mB.appendChild(tr);
+    dHTML+=`</div>`;
   });
+  dHTML+='</div>';
+  detailEl.innerHTML=dHTML;
 
   const labels=rows.map(r=>r[0]);
 
@@ -376,7 +397,6 @@ function renderMock(raw){
     const card=document.createElement('div');card.className='card';
     card.innerHTML=`<div class="card-title"><span class="dot" style="background:${s.color}"></span>${dispName}</div><div class="chart-box"><canvas></canvas></div>`;
     container.appendChild(card);
-
     const datasets=[{
       label:'등급',data,yAxisID:'y',
       borderColor:s.color,backgroundColor:s.color+'15',
@@ -384,7 +404,6 @@ function renderMock(raw){
       pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:2.5,fill:true,
     }];
     let scales={y:{reverse:true,min:1,max:9,ticks:{stepSize:1,font:{size:10}},grid:{color:'#f3f4f6'},position:'left'},x:{grid:{display:false},ticks:{font:{size:9}}}};
-
     if(s.pC!==null){
       const pctData=rows.map(r=>parseInt(r[s.pC])||null);
       datasets.push({
@@ -395,7 +414,6 @@ function renderMock(raw){
       });
       scales.y2={reverse:false,min:0,max:100,position:'right',grid:{display:false},ticks:{font:{size:9},callback:v=>v+'%'}};
     }
-
     new Chart(card.querySelector('canvas'),{
       type:'line',data:{labels,datasets},
       options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
