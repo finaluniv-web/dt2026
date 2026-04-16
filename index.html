@@ -6,109 +6,334 @@
 <title>학생 개인 기록지</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+  :root{--primary:#1a1a2e;--accent1:#6c63ff;--accent2:#e94560;--accent3:#0ea5e9;--accent4:#10b981;--bg:#f0f2f5;--card:#fff}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--primary);min-height:100vh}
 
-  :root {
-    --primary: #1a1a2e;
-    --accent1: #6c63ff;
-    --accent2: #e94560;
-    --accent3: #0ea5e9;
-    --accent4: #10b981;
-    --bg: #f0f2f5;
-    --card: #ffffff;
+  #loading{position:fixed;inset:0;background:var(--primary);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s}
+  #loading.hide{opacity:0;pointer-events:none}
+  .spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.08);border-top-color:var(--accent1);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #loading p{color:#888;margin-top:14px;font-size:13px}
+
+  .wrap{max-width:960px;margin:0 auto;padding:20px}
+
+  .profile{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:20px;padding:30px 32px;color:#fff;margin-bottom:20px;position:relative;overflow:hidden}
+  .profile::after{content:'';position:absolute;top:-60%;right:-30%;width:400px;height:400px;background:radial-gradient(circle,rgba(108,99,255,.18) 0%,transparent 65%);pointer-events:none}
+  .profile-top{display:flex;align-items:center;gap:18px;position:relative;z-index:1}
+  .avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent1),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;flex-shrink:0}
+  .profile-top h1{font-size:24px;font-weight:800}
+  .profile-top .sub{font-size:13px;color:rgba(255,255,255,.55);margin-top:2px}
+  .tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;position:relative;z-index:1}
+  .tag{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 13px;font-size:11px;color:rgba(255,255,255,.75)}
+  .tag b{color:var(--accent1)}
+
+  .tabs{display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tabs button{padding:9px 18px;border-radius:10px;border:1px solid #ddd;background:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;color:#666;font-family:inherit}
+  .tabs button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .tabs button:hover:not(.on){background:#f4f4f8}
+  .pane{display:none}.pane.on{display:block}
+
+  .card{background:var(--card);border-radius:16px;padding:22px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+  .sec-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .sec-title i{width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:15px;color:#fff}
+  .ic1{background:linear-gradient(135deg,#e94560,#ff6b6b)}.ic2{background:linear-gradient(135deg,#6c63ff,#a78bfa)}.ic3{background:linear-gradient(135deg,#0ea5e9,#38bdf8)}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+  .st{background:#fff;border-radius:13px;padding:14px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+  .st .lb{font-size:11px;color:#999;margin-bottom:3px}.st .vl{font-size:22px;font-weight:800;color:var(--primary)}.st .un{font-size:10px;color:#bbb}
+  .up{color:var(--accent2)!important}.dn{color:var(--accent3)!important}
+
+  .tbl{width:100%;border-collapse:collapse;font-size:12px}
+  .tbl th{background:#f8f9fa;padding:9px 8px;text-align:center;font-weight:600;color:#666;border-bottom:2px solid #e5e7eb;white-space:nowrap;position:sticky;top:0}
+  .tbl td{padding:9px 8px;text-align:center;border-bottom:1px solid #f0f0f0;color:#333}
+  .tbl tbody tr:hover{background:#f8f9ff}
+  .tbl .dt{color:#aaa;font-size:11px}
+  .chg-up{color:var(--accent2);font-weight:700;font-size:10px}.chg-dn{color:var(--accent3);font-weight:700;font-size:10px}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  .mock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .mock-card{background:#f8f9ff;border-radius:13px;padding:16px;border:1px solid #ececf4}
+  .mock-card .mc-label{font-size:11px;color:#aaa}.mock-card .mc-title{font-size:15px;font-weight:700;margin-bottom:10px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chip{background:#fff;border:1px solid #e0e0e8;border-radius:8px;padding:4px 9px;font-size:11px;display:flex;align-items:center;gap:3px}
+  .chip .s{color:#888}.chip .v{font-weight:700}
+  .g1{border-color:#6c63ff;background:#f0efff}.g2{border-color:#0ea5e9;background:#e8f7ff}.g3{border-color:#10b981;background:#e6fcf5}.g4{border-color:#f59e0b;background:#fff8e6}
+
+  .gpa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .gpa-box{text-align:center;background:#f8f9ff;border-radius:14px;padding:20px 14px;border:1px solid #ececf4}
+  .gpa-box .gl{font-size:11px;color:#999;margin-bottom:6px}
+  .gpa-box .gv{font-size:30px;font-weight:800;background:linear-gradient(135deg,var(--accent1),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .gpa-box .gs{font-size:10px;color:#bbb;margin-top:2px}
+
+  .chart-box{position:relative;height:240px;margin-top:10px}
+
+  .grade-badge{display:inline-block;width:22px;height:22px;line-height:22px;border-radius:50%;text-align:center;font-size:11px;font-weight:700;color:#fff}
+  .gb1{background:#6c63ff}.gb2{background:#0ea5e9}.gb3{background:#10b981}.gb4{background:#f59e0b}.gb5{background:#f97316}.gb6{background:#ef4444}.gb7{background:#dc2626}.gb8{background:#991b1b}.gb9{background:#555}
+
+  @media(max-width:640px){
+    .wrap{padding:10px}.profile{padding:20px}.profile-top{flex-direction:column;text-align:center}.tags{justify-content:center}.profile-top h1{font-size:20px}
+    .stats{grid-template-columns:repeat(3,1fr)}.mock-grid{grid-template-columns:1fr}.gpa-grid{grid-template-columns:repeat(2,1fr)}.chart-box{height:200px}
+  }
+  @media print{body{background:#fff}.tabs{display:none}.pane{display:block!important}}
+  .no-data{text-align:center;padding:30px;color:#bbb;font-size:13px}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><p>기록지 불러오는 중...</p></div>
+
+<div class="wrap" id="app" style="opacity:0">
+  <div class="profile">
+    <div class="profile-top">
+      <div class="avatar" id="av"></div>
+      <div><h1 id="pName">-</h1><div class="sub" id="pSub"></div></div>
+    </div>
+    <div class="tags" id="pTags"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="on" data-t="fitness">🏃 실기기록</button>
+    <button data-t="mock">📝 모의고사</button>
+    <button data-t="gpa">📊 내신성적</button>
+    <button data-t="all">📋 전체보기</button>
+  </div>
+
+  <div class="pane on" id="p-fitness">
+    <div class="sec-title"><i class="ic1">🏃</i> 실기 테스트 기록</div>
+    <div class="stats" id="fitStats"></div>
+    <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr id="fitH"></tr></thead><tbody id="fitB"></tbody></table></div><div class="no-data" id="fitNone" style="display:none">실기 데이터가 없습니다.</div></div>
+    <div class="card"><div style="font-weight:600;font-size:13px;margin-bottom:4px">📈 점수 변화 추이</div><div class="chart-box"><canvas id="fitChart"></canvas></div></div>
+  </div>
+
+  <div class="pane" id="p-mock">
+    <div class="sec-title"><i class="ic2">📝</i> 모의고사 성적</div>
+    <div class="stats" id="mockStats"></div>
+    <div class="mock-grid" id="mockGrid"></div>
+    <div class="no-data" id="mockNone" style="display:none">모의고사 데이터가 없습니다.</div>
+    <div class="card" style="margin-top:14px"><div style="font-weight:600;font-size:13px;margin-bottom:10px">📋 시험별 상세 성적</div><div class="tbl-wrap"><table class="tbl"><thead><tr id="mockH"></tr></thead><tbody id="mockB"></tbody></table></div></div>
+    <div class="card"><div style="font-weight:600;font-size:13px;margin-bottom:4px">📈 등급 변화 추이</div><div class="chart-box"><canvas id="mockChart"></canvas></div></div>
+  </div>
+
+  <div class="pane" id="p-gpa">
+    <div class="sec-title"><i class="ic3">📊</i> 내신 성적</div>
+    <div class="card"><div class="gpa-grid" id="gpaGrid"></div><div class="no-data" id="gpaNone" style="display:none">내신 데이터가 없습니다.</div></div>
+  </div>
+
+  <div class="pane" id="p-all"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+/* ========== 시트 설정 ========== */
+const SHEET_ID = '1JT-y2ZF6GLQD4ZYzP8yxFp6flxxc_F_vCMXGdY-gogs';
+const sheetURL = name => 
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+
+/* ★ 실제 시트 탭 이름 (0 없이!) */
+const URLS = {
+  info:    sheetURL('1.인적사항'),
+  fitness: sheetURL('2.실기테스트'),
+  mock:    sheetURL('3.모의고사성적'),
+  gpa:     sheetURL('4.내신성적'),
+};
+
+const studentName = new URLSearchParams(location.search).get('name') || '권민진';
+
+/* ========== CSV 파서 ========== */
+function parseRow(line) {
+  const row = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) { if (c==='"'&&line[i+1]==='"'){cur+='"';i++} else if(c==='"')inQ=false; else cur+=c; }
+    else { if(c==='"')inQ=true; else if(c===','){row.push(cur.trim());cur='';} else cur+=c; }
+  }
+  row.push(cur.trim()); return row;
+}
+function parseCSV(text) {
+  const lines = text.split('\n').filter(l=>l.trim());
+  if(lines.length<2) return [];
+  const h = parseRow(lines[0]);
+  return lines.slice(1).map(l=>{const c=parseRow(l);const o={};h.forEach((k,i)=>o[k]=c[i]||'');return o;});
+}
+function fmtDate(d){if(!d||d.length<6)return d;const s=d.replace(/\D/g,'');return `20${s.substring(0,2)}.${s.substring(2,4)}.${s.substring(4,6)}`;}
+function shortDate(d){if(!d||d.length<6)return d;const s=d.replace(/\D/g,'');return `${parseInt(s.substring(2,4))}/${parseInt(s.substring(4,6))}`;}
+
+/* ========== 프로필 ========== */
+function renderProfile(info, fitCount, mockCount) {
+  const name = info['이름']||studentName;
+  document.getElementById('av').textContent = name.slice(-1);
+  document.getElementById('pName').textContent = name;
+  document.getElementById('pSub').textContent = `${info['학교']||''} ${info['학년']||''} · 개인 기록지`;
+  let h = '';
+  if(info['성별']) h+=`<span class="tag">🧑 ${info['성별']}</span>`;
+  if(fitCount) h+=`<span class="tag">🏃 실기측정 <b>${fitCount}회</b></span>`;
+  if(mockCount) h+=`<span class="tag">📝 모의고사 <b>${mockCount}회</b></span>`;
+  document.getElementById('pTags').innerHTML = h;
+}
+
+/* ========== 실기 ========== */
+function renderFitness(rawText) {
+  const lines = rawText.split('\n').filter(l=>l.trim());
+  if(lines.length<2) return 0;
+  const rows = [];
+  for(let i=1;i<lines.length;i++){const c=parseRow(lines[i]);if(c[1]===studentName)rows.push(c);}
+  if(!rows.length){document.getElementById('fitNone').style.display='';return 0;}
+  rows.sort((a,b)=>a[0].localeCompare(b[0]));
+
+  const items=[
+    {name:'배근력',unit:'kg',ri:5,si:6},
+    {name:'10m왕복',unit:'초',ri:7,si:8},
+    {name:'메디신볼',unit:'m',ri:9,si:10},
+    {name:'좌전굴',unit:'cm',ri:11,si:12},
+    {name:'제자리멀리뛰기',unit:'cm',ri:13,si:14},
+    {name:'20m왕복',unit:'초',ri:15,si:16},
+  ];
+  const tI=rows[0].length-2, aI=rows[0].length-1;
+
+  const hdr=document.getElementById('fitH');
+  hdr.innerHTML='<th>측정일</th>';
+  items.forEach(it=>{hdr.innerHTML+=`<th>${it.name}<br><small style="color:#aaa">${it.unit}</small></th><th>점수</th>`;});
+  hdr.innerHTML+='<th style="background:#eef">총점</th><th style="background:#eef">평균</th>';
+
+  const tbody=document.getElementById('fitB');
+  rows.forEach((c,i)=>{
+    const tr=document.createElement('tr');
+    let h=`<td class="dt">${fmtDate(c[0])}</td>`;
+    items.forEach(it=>{
+      const scr=c[it.si]||'';let chg='';
+      if(i>0&&scr&&rows[i-1][it.si]){const d=parseFloat(scr)-parseFloat(rows[i-1][it.si]);if(d>0)chg=`<br><span class="chg-up">▲${d}</span>`;else if(d<0)chg=`<br><span class="chg-dn">▼${Math.abs(d)}</span>`;}
+      h+=`<td>${c[it.ri]||'-'}</td><td>${scr||'-'}${chg}</td>`;
+    });
+    h+=`<td style="font-weight:700;background:#fafafe">${c[tI]||'-'}</td><td style="background:#fafafe">${c[aI]||'-'}</td>`;
+    tr.innerHTML=h;tbody.appendChild(tr);
+  });
+
+  const L=rows[rows.length-1],F=rows[0],stats=document.getElementById('fitStats');
+  let s=`<div class="st"><div class="lb">측정 횟수</div><div class="vl">${rows.length}</div><div class="un">회</div></div>`;
+  s+=`<div class="st"><div class="lb">최신 총점</div><div class="vl">${L[tI]||'-'}</div><div class="un">/ 600</div></div>`;
+  if(rows.length>1){const d=parseFloat(L[tI])-parseFloat(F[tI]);s+=`<div class="st"><div class="lb">총점 변화</div><div class="vl ${d>=0?'up':'dn'}">${d>0?'+':''}${d}</div><div class="un">점</div></div>`;}
+  items.forEach(it=>{const v=L[it.si];if(v)s+=`<div class="st"><div class="lb">${it.name}</div><div class="vl">${v}</div><div class="un">점</div></div>`;});
+  stats.innerHTML=s;
+
+  // 차트
+  const ctx=document.getElementById('fitChart');
+  const colors=['#e94560','#6c63ff','#0ea5e9','#10b981','#f59e0b','#8b5cf6'];
+  const ds=items.map((it,i)=>({label:it.name,data:rows.map(r=>parseFloat(r[it.si])||null),borderColor:colors[i],backgroundColor:colors[i]+'15',tension:.3,pointRadius:4,borderWidth:2,hidden:true}));
+  ds.unshift({label:'총점',data:rows.map(r=>parseFloat(r[tI])||null),borderColor:'#1a1a2e',backgroundColor:'#1a1a2e15',tension:.3,pointRadius:5,borderWidth:3});
+  new Chart(ctx,{type:'line',data:{labels:rows.map(r=>shortDate(r[0])),datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},scales:{y:{beginAtZero:false}}}});
+  return rows.length;
+}
+
+/* ========== 모의고사 ========== */
+function renderMock(rawText) {
+  const lines=rawText.split('\n').filter(l=>l.trim());
+  if(lines.length<2)return 0;
+  const rows=[];
+  for(let i=1;i<lines.length;i++){const c=parseRow(lines[i]);if(c[1]===studentName)rows.push(c);}
+  if(!rows.length){document.getElementById('mockNone').style.display='';return 0;}
+
+  const subjs=[
+    {name:'국어',subC:5,rawC:6,stdC:7,pctC:8,grdC:9},
+    {name:'수학',subC:10,rawC:11,stdC:12,pctC:13,grdC:14},
+    {name:'영어',subC:null,rawC:15,stdC:null,pctC:null,grdC:16},
+    {name:'탐구1',subC:17,rawC:18,stdC:19,pctC:20,grdC:21},
+    {name:'탐구2',subC:22,rawC:23,stdC:24,pctC:25,grdC:26},
+    {name:'한국사',subC:null,rawC:27,stdC:null,pctC:null,grdC:28},
+  ];
+
+  const grid=document.getElementById('mockGrid');
+  rows.forEach(c=>{
+    const div=document.createElement('div');div.className='mock-card';let chips='';
+    subjs.forEach(s=>{const g=parseInt(c[s.grdC]);if(!g)return;const gc=g<=1?'g1':g<=2?'g2':g<=3?'g3':'g4';const sub=s.subC?c[s.subC]:'';const lb=sub?`${s.name}(${sub})`:s.name;chips+=`<span class="chip ${gc}"><span class="s">${lb}</span> <span class="v">${g}등급</span></span>`;});
+    div.innerHTML=`<div class="mc-label">모의고사</div><div class="mc-title">${c[0]}</div><div class="chips">${chips}</div>`;
+    grid.appendChild(div);
+  });
+
+  const mH=document.getElementById('mockH');
+  mH.innerHTML='<th>시험</th>';
+  subjs.forEach(s=>{if(s.stdC!==null)mH.innerHTML+=`<th>${s.name}<br><small>과목</small></th><th>원점수</th><th>표준</th><th>백분위</th><th>등급</th>`;else mH.innerHTML+=`<th>${s.name}</th><th>등급</th>`;});
+
+  const mB=document.getElementById('mockB');
+  rows.forEach(c=>{
+    const tr=document.createElement('tr');let h=`<td class="dt" style="white-space:nowrap">${c[0]}</td>`;
+    subjs.forEach(s=>{const g=parseInt(c[s.grdC])||0;const gb=g>=1&&g<=9?`gb${g}`:'';if(s.stdC!==null){h+=`<td style="font-size:10px">${s.subC?c[s.subC]:''}</td><td>${c[s.rawC]||'-'}</td><td>${c[s.stdC]||'-'}</td><td>${c[s.pctC]||'-'}</td><td><span class="grade-badge ${gb}">${g||'-'}</span></td>`;}else{h+=`<td>${c[s.rawC]||'-'}</td><td><span class="grade-badge ${gb}">${g||'-'}</span></td>`;}});
+    tr.innerHTML=h;mB.appendChild(tr);
+  });
+
+  const L=rows[rows.length-1],stats=document.getElementById('mockStats');
+  const mainG=[9,14,16].map(i=>parseInt(L[i])).filter(g=>g>0);
+  let s=`<div class="st"><div class="lb">최근 시험</div><div class="vl" style="font-size:14px">${L[0]}</div></div>`;
+  if(mainG.length){const avg=(mainG.reduce((a,b)=>a+b,0)/mainG.length).toFixed(1);s+=`<div class="st"><div class="lb">주요 평균</div><div class="vl">${avg}</div><div class="un">등급</div></div>`;}
+  subjs.forEach(sj=>{const g=L[sj.grdC];if(g)s+=`<div class="st"><div class="lb">${sj.name}</div><div class="vl">${g}</div><div class="un">등급</div></div>`;});
+  stats.innerHTML=s;
+
+  const ctx=document.getElementById('mockChart');
+  const colors=['#e94560','#6c63ff','#0ea5e9','#10b981','#f59e0b'];
+  const ds=subjs.filter(s=>s.name!=='한국사').map((s,i)=>({label:s.name,data:rows.map(r=>parseInt(r[s.grdC])||null),borderColor:colors[i],tension:.3,pointRadius:5,borderWidth:2}));
+  new Chart(ctx,{type:'line',data:{labels:rows.map(r=>r[0]),datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},scales:{y:{reverse:true,min:1,max:9,ticks:{stepSize:1}}}}});
+  return rows.length;
+}
+
+/* ========== 내신 ========== */
+function renderGPA(gpa) {
+  const keys=['전과목','국영','국수영','국수영사','국수영과','영탐'];
+  const labels=['전과목','국어·영어','국·수·영','국·수·영·사','국·수·영·과','영어·탐구'];
+  if(!keys.some(k=>gpa[k])){document.getElementById('gpaNone').style.display='';return;}
+  const grid=document.getElementById('gpaGrid');
+  keys.forEach((k,i)=>{const v=gpa[k];if(!v)return;grid.innerHTML+=`<div class="gpa-box"><div class="gl">${labels[i]}</div><div class="gv">${v}</div><div class="gs">등급</div></div>`;});
+}
+
+/* ========== 탭 ========== */
+document.querySelectorAll('.tabs button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('p-'+btn.dataset.t).classList.add('on');
+  });
+});
+
+function buildAllTab(){
+  const all=document.getElementById('p-all');
+  ['p-fitness','p-mock','p-gpa'].forEach(id=>{
+    const clone=document.getElementById(id).cloneNode(true);
+    clone.style.display='block';clone.removeAttribute('id');
+    clone.querySelectorAll('canvas').forEach(c=>c.parentElement.parentElement.remove());
+    all.appendChild(clone);
+  });
+}
+
+/* ========== 메인 실행 ========== */
+(async()=>{
+  try{
+    const [infoText,fitText,mockText,gpaText] = await Promise.all([
+      fetch(URLS.info).then(r=>r.text()),
+      fetch(URLS.fitness).then(r=>r.text()),
+      fetch(URLS.mock).then(r=>r.text()),
+      fetch(URLS.gpa).then(r=>r.text()),
+    ]);
+
+    const allInfo=parseCSV(infoText);
+    const allGpa=parseCSV(gpaText);
+    const info=allInfo.find(r=>r['이름']===studentName)||{};
+    const gpa=allGpa.find(r=>r['이름']===studentName)||{};
+
+    const fitCount=renderFitness(fitText);
+    const mockCount=renderMock(mockText);
+    renderProfile(info,fitCount,mockCount);
+    renderGPA(gpa);
+    buildAllTab();
+  }catch(e){
+    console.error('로드 실패:',e);
+    document.getElementById('loading').innerHTML='<p style="color:#e94560">데이터 로드에 실패했습니다.<br>새로고침 해주세요.</p>';
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'Noto Sans KR', sans-serif;
-    background: var(--bg);
-    color: var(--primary);
-    min-height: 100vh;
-  }
-
-  /* ── 로딩 ── */
-  #loading {
-    position: fixed; inset: 0;
-    background: var(--primary);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    z-index: 9999; transition: opacity 0.6s;
-  }
-  #loading.hide { opacity: 0; pointer-events: none; }
-  .spinner {
-    width: 44px; height: 44px;
-    border: 4px solid rgba(255,255,255,0.08);
-    border-top-color: var(--accent1);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  #loading p { color: #888; margin-top: 14px; font-size: 13px; letter-spacing: 0.5px; }
-
-  /* ── 컨테이너 ── */
-  .wrap { max-width: 960px; margin: 0 auto; padding: 20px; }
-
-  /* ── 프로필 ── */
-  .profile {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    border-radius: 20px; padding: 30px 32px; color: #fff;
-    margin-bottom: 20px; position: relative; overflow: hidden;
-  }
-  .profile::after {
-    content: ''; position: absolute; top: -60%; right: -30%;
-    width: 400px; height: 400px;
-    background: radial-gradient(circle, rgba(108,99,255,0.18) 0%, transparent 65%);
-    pointer-events: none;
-  }
-  .profile-top { display: flex; align-items: center; gap: 18px; position: relative; z-index: 1; }
-  .avatar {
-    width: 64px; height: 64px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent1), var(--accent2));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px; font-weight: 800; flex-shrink: 0;
-  }
-  .profile-top h1 { font-size: 24px; font-weight: 800; }
-  .profile-top .sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 2px; }
-  .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; position: relative; z-index: 1; }
-  .tag {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 20px; padding: 5px 13px;
-    font-size: 11px; color: rgba(255,255,255,0.75);
-  }
-  .tag b { color: var(--accent1); }
-
-  /* ── 탭 ── */
-  .tabs { display: flex; gap: 6px; margin-bottom: 18px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .tabs button {
-    padding: 9px 18px; border-radius: 10px;
-    border: 1px solid #ddd; background: #fff;
-    font-size: 13px; font-weight: 600;
-    cursor: pointer; white-space: nowrap;
-    transition: all 0.15s; color: #666;
-    font-family: inherit;
-  }
-  .tabs button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
-  .tabs button:hover:not(.on) { background: #f4f4f8; }
-  .pane { display: none; }
-  .pane.on { display: block; }
-
-  /* ── 카드 ── */
-  .card {
-    background: var(--card); border-radius: 16px;
-    padding: 22px; margin-bottom: 14px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  }
-
-  /* ── 섹션 제목 ── */
-  .sec-title {
-    font-size: 16px; font-weight: 700;
-    display: flex; align-items: center; gap: 9px;
-    margin-bottom: 14px;
-  }
-  .sec-title i {
-    width: 30px; height: 30px; border-radius: 9px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-style: normal; font-size: 15px; color: #fff;
-  }
-  .ic
+  document.getElementById('loading').classList.add('hide');
+  const app=document.getElementById('app');
+  app.style.transition='opacity .5s';
+  app.style.opacity='1';
+})();
+</script>
+</body>
+</html>
