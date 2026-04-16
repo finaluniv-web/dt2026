@@ -28,13 +28,21 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
 .profile-header .logo-text{font-size:17px;font-weight:900;letter-spacing:-1px;color:var(--primary)}
 .campus-badge{background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:5px;letter-spacing:.3px}
 .profile-body{padding:20px;display:flex;align-items:center;gap:14px}
-.p-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 3px 12px rgba(79,70,229,.25)}
+.p-avatar{
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#fff;flex-shrink:0;
+  box-shadow:0 3px 12px rgba(79,70,229,.25);
+  letter-spacing:-0.5px;
+}
 .p-info{flex:1}
 .p-name{font-size:20px;font-weight:800;color:var(--primary);letter-spacing:-.5px}
 .p-sub{font-size:12px;color:#9ca3af;margin-top:2px}
 .profile-footer{padding:0 20px 16px;display:flex;gap:6px;flex-wrap:wrap}
 .p-tag{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:20px;padding:4px 11px;font-size:10px;color:#6b7280;font-weight:500}
 .p-tag b{color:var(--accent);font-weight:700}
+.p-tag.class-tag{background:#eef2ff;border-color:#c7d2fe;color:var(--accent);font-weight:700}
 
 /* ── 탭 ── */
 .tab-wrap{background:#fff;border-radius:12px;padding:4px;margin-bottom:16px;display:flex;gap:4px;box-shadow:var(--shadow)}
@@ -67,10 +75,11 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
 .chg-up{display:inline-block;color:#ec4899;font-weight:700;font-size:9px;background:#fdf2f8;padding:1px 5px;border-radius:4px;margin-top:2px}
 .chg-dn{display:inline-block;color:#06b6d4;font-weight:700;font-size:9px;background:#ecfeff;padding:1px 5px;border-radius:4px;margin-top:2px}
 
-/* ── 모의고사 ── */
+/* ── 모의고사 카드 ── */
 .mock-list{display:flex;flex-direction:column;gap:10px}
 .m-card{background:#fff;border-radius:12px;padding:14px;border:1px solid #f0f0f4;box-shadow:0 1px 4px rgba(0,0,0,.03)}
 .m-card .m-exam{font-size:14px;font-weight:700;margin-bottom:10px}
+/* ★ 6칸 고정 그리드 */
 .m-subjects{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .m-subj{background:#f9fafb;border-radius:10px;padding:10px 8px;text-align:center;border:1px solid #e5e7eb}
 .m-subj .ms-name{font-size:9px;color:#9ca3af;margin-bottom:3px;font-weight:500}
@@ -85,19 +94,17 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
 .gpa-card .gc-val{font-size:28px;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .gpa-card .gc-sub{font-size:9px;color:#d1d5db;margin-top:3px}
 
-/* ── 차트 ── */
 .chart-box{position:relative;height:220px;margin-top:8px}
-.chart-box.tall{height:260px}
 
-/* ── 등급배지 ── */
 .gb{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;border-radius:50%;font-size:11px;font-weight:700;color:#fff}
 .gb1{background:#4f46e5}.gb2{background:#06b6d4}.gb3{background:#10b981}.gb4{background:#f59e0b}.gb5{background:#f97316}.gb6{background:#ef4444}.gb7{background:#dc2626}.gb8{background:#991b1b}.gb9{background:#6b7280}
 
 @media(max-width:400px){
   .wrap{padding:10px}.profile-body{padding:16px}.p-name{font-size:18px}
   .stat-grid{grid-template-columns:repeat(3,1fr);gap:6px}.stat-box{padding:10px 6px}.stat-box .sv{font-size:17px}
-  .tab-btn{font-size:11px;padding:8px 0}.chart-box{height:180px}.chart-box.tall{height:220px}
+  .tab-btn{font-size:11px;padding:8px 0}.chart-box{height:180px}
   .profile-header img{height:22px}
+  .m-subjects{grid-template-columns:repeat(3,1fr)}
 }
 @media(min-width:641px){.stat-grid{grid-template-columns:repeat(4,1fr)}.m-subjects{grid-template-columns:repeat(6,1fr)}}
 @media print{body{background:#fff}.tab-wrap{display:none}.pane{display:block!important}}
@@ -111,7 +118,6 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
 
 <div class="wrap" id="app" style="opacity:0">
 
-  <!-- 프로필 -->
   <div class="profile-card">
     <div class="profile-header">
       <div class="profile-header-left">
@@ -126,14 +132,13 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
     <div class="profile-footer" id="pTags"></div>
   </div>
 
-  <!-- 탭 (전체보기 삭제) -->
   <div class="tab-wrap">
     <button class="tab-btn on" data-t="fitness">🏃 실기</button>
     <button class="tab-btn" data-t="mock">📝 모의고사</button>
     <button class="tab-btn" data-t="gpa">📊 내신</button>
   </div>
 
-  <!-- ═══ 실기 ═══ -->
+  <!-- 실기 -->
   <div class="pane on" id="p-fitness">
     <div class="stat-grid" id="fitStats"></div>
     <div class="card">
@@ -141,16 +146,14 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
       <div class="tbl-wrap"><table class="tbl"><thead><tr id="fitH"></tr></thead><tbody id="fitB"></tbody></table></div>
       <div class="no-data" id="fitNone" style="display:none">실기 데이터가 없습니다.</div>
     </div>
-    <!-- 총점 차트 -->
     <div class="card">
       <div class="card-title"><span class="dot dot-red"></span>총점 변화</div>
       <div class="chart-box"><canvas id="fitTotalChart"></canvas></div>
     </div>
-    <!-- 종목별 개별 차트 컨테이너 -->
     <div id="fitItemCharts"></div>
   </div>
 
-  <!-- ═══ 모의고사 ═══ -->
+  <!-- 모의고사 -->
   <div class="pane" id="p-mock">
     <div class="stat-grid" id="mockStats"></div>
     <div class="mock-list" id="mockList"></div>
@@ -159,16 +162,14 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
       <div class="card-title"><span class="dot dot-purple"></span>시험별 상세</div>
       <div class="tbl-wrap"><table class="tbl"><thead><tr id="mockH"></tr></thead><tbody id="mockB"></tbody></table></div>
     </div>
-    <!-- 전체 등급 추이 -->
     <div class="card">
       <div class="card-title"><span class="dot dot-purple"></span>전체 등급 변화</div>
       <div class="chart-box"><canvas id="mockAllChart"></canvas></div>
     </div>
-    <!-- 과목별 개별 차트 컨테이너 -->
     <div id="mockSubjCharts"></div>
   </div>
 
-  <!-- ═══ 내신 ═══ -->
+  <!-- 내신 -->
   <div class="pane" id="p-gpa">
     <div class="card">
       <div class="card-title"><span class="dot dot-blue"></span>내신 성적</div>
@@ -191,32 +192,36 @@ function parseCSV(t){const ls=t.split('\n').filter(l=>l.trim());if(ls.length<2)r
 function fDate(d){if(!d||d.length<6)return d;const s=d.replace(/\D/g,'');return`${s.substring(2,4)}.${s.substring(4,6)}`}
 function fullDate(d){if(!d||d.length<6)return d;const s=d.replace(/\D/g,'');return`20${s.substring(0,2)}.${s.substring(2,4)}.${s.substring(4,6)}`}
 
-/* 공통 차트 옵션 생성 */
 function makeLineOpts(reverse){
-  return {
-    responsive:true,maintainAspectRatio:false,
-    interaction:{intersect:false,mode:'index'},
-    plugins:{
-      legend:{display:false},
-      tooltip:{backgroundColor:'rgba(17,24,39,.92)',titleFont:{size:12,family:'Noto Sans KR'},bodyFont:{size:11,family:'Noto Sans KR'},padding:10,cornerRadius:8,displayColors:true}
-    },
-    scales:{
-      y:Object.assign({grid:{color:'#f3f4f6'},ticks:{font:{size:10}}},reverse?{reverse:true,min:1,max:9,ticks:{stepSize:1,font:{size:10}}}:{beginAtZero:false}),
-      x:{grid:{display:false},ticks:{font:{size:10}}}
-    }
+  return{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,24,39,.92)',titleFont:{size:12,family:'Noto Sans KR'},bodyFont:{size:11,family:'Noto Sans KR'},padding:10,cornerRadius:8,displayColors:true}},
+    scales:{y:Object.assign({grid:{color:'#f3f4f6'},ticks:{font:{size:10}}},reverse?{reverse:true,min:1,max:9,ticks:{stepSize:1,font:{size:10}}}:{beginAtZero:false}),x:{grid:{display:false},ticks:{font:{size:10}}}}
   };
 }
 
 /* ====== 프로필 ====== */
 function renderProfile(info,fc,mc){
   const n=info['이름']||studentName;
-  document.getElementById('av').textContent=n.slice(-1);
+  const cls=info['수강반']||'';
+
+  // ★ 아바타: 수강반이 있으면 수강반 표시, 없으면 이름 마지막 글자
+  const av=document.getElementById('av');
+  if(cls){
+    av.textContent=cls;
+    av.style.fontSize=cls.length>3?'11px':'13px';
+  }else{
+    av.textContent=n.slice(-1);
+    av.style.fontSize='20px';
+  }
+
   document.getElementById('pName').textContent=n;
   document.getElementById('pSub').textContent=`${info['학교']||''} ${info['학년']||''} · 개인 기록지`;
+
   let h='';
-  if(info['성별'])h+=`<span class="p-tag">🧑 ${info['성별']}</span>`;
-  if(fc)h+=`<span class="p-tag">🏃 실기 <b>${fc}회</b></span>`;
-  if(mc)h+=`<span class="p-tag">📝 모의고사 <b>${mc}회</b></span>`;
+  if(cls) h+=`<span class="p-tag class-tag">${cls}</span>`;
+  if(info['성별']) h+=`<span class="p-tag">${info['성별']}</span>`;
+  if(fc) h+=`<span class="p-tag">🏃 실기 <b>${fc}회</b></span>`;
+  if(mc) h+=`<span class="p-tag">📝 모의고사 <b>${mc}회</b></span>`;
   document.getElementById('pTags').innerHTML=h;
 }
 
@@ -230,16 +235,15 @@ function renderFitness(raw){
   rows.sort((a,b)=>a[0].localeCompare(b[0]));
 
   const items=[
-    {name:'배근력',u:'kg',ri:5,si:6,color:'#ec4899',bg:'#fdf2f8'},
-    {name:'10m왕복',u:'초',ri:7,si:8,color:'#4f46e5',bg:'#eef2ff'},
-    {name:'메디신볼',u:'m',ri:9,si:10,color:'#06b6d4',bg:'#ecfeff'},
-    {name:'좌전굴',u:'cm',ri:11,si:12,color:'#10b981',bg:'#ecfdf5'},
-    {name:'제자리멀리뛰기',u:'cm',ri:13,si:14,color:'#f59e0b',bg:'#fffbeb'},
-    {name:'20m왕복',u:'초',ri:15,si:16,color:'#8b5cf6',bg:'#f5f3ff'},
+    {name:'배근력',u:'kg',ri:5,si:6,color:'#ec4899'},
+    {name:'10m왕복',u:'초',ri:7,si:8,color:'#4f46e5'},
+    {name:'메디신볼',u:'m',ri:9,si:10,color:'#06b6d4'},
+    {name:'좌전굴',u:'cm',ri:11,si:12,color:'#10b981'},
+    {name:'제자리멀리뛰기',u:'cm',ri:13,si:14,color:'#f59e0b'},
+    {name:'20m왕복',u:'초',ri:15,si:16,color:'#8b5cf6'},
   ];
   const tI=rows[0].length-2;
 
-  // 스탯
   const L=rows[rows.length-1],F=rows[0],st=document.getElementById('fitStats');
   let s=`<div class="stat-box"><div class="sl">측정</div><div class="sv">${rows.length}</div><div class="su">회</div></div>`;
   s+=`<div class="stat-box"><div class="sl">최신 총점</div><div class="sv">${L[tI]||'-'}</div><div class="su">/ 600</div></div>`;
@@ -247,7 +251,6 @@ function renderFitness(raw){
   items.forEach(it=>{const v=L[it.si];if(v)s+=`<div class="stat-box"><div class="sl">${it.name}</div><div class="sv">${v}</div><div class="su">점</div></div>`});
   st.innerHTML=s;
 
-  // 테이블
   const hdr=document.getElementById('fitH');
   hdr.innerHTML='<th>날짜</th>';
   items.forEach(it=>hdr.innerHTML+=`<th>${it.name}<br><span style="color:#d1d5db;font-weight:400">${it.u}</span></th><th>점수</th>`);
@@ -267,19 +270,15 @@ function renderFitness(raw){
 
   const labels=rows.map(r=>fDate(r[0]));
 
-  // ★ 총점 차트
   new Chart(document.getElementById('fitTotalChart'),{
-    type:'line',
-    data:{labels,datasets:[{
+    type:'line',data:{labels,datasets:[{
       label:'총점',data:rows.map(r=>parseFloat(r[tI])||null),
       borderColor:'#312e81',backgroundColor:'rgba(79,70,229,.1)',
       tension:.4,pointRadius:6,pointBackgroundColor:'#4f46e5',
       pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:3,fill:true,
-    }]},
-    options:Object.assign({},makeLineOpts(false),{plugins:{legend:{display:false},tooltip:makeLineOpts(false).plugins.tooltip}})
+    }]},options:makeLineOpts(false)
   });
 
-  // ★ 종목별 개별 차트
   const container=document.getElementById('fitItemCharts');
   items.forEach(it=>{
     const data=rows.map(r=>parseFloat(r[it.si])||null);
@@ -287,19 +286,15 @@ function renderFitness(raw){
     const card=document.createElement('div');card.className='card';
     card.innerHTML=`<div class="card-title"><span class="dot" style="background:${it.color}"></span>${it.name} <span style="font-weight:400;color:#9ca3af;font-size:12px">(${it.u})</span></div><div class="chart-box"><canvas></canvas></div>`;
     container.appendChild(card);
-    const canvas=card.querySelector('canvas');
-    new Chart(canvas,{
-      type:'line',
-      data:{labels,datasets:[{
+    new Chart(card.querySelector('canvas'),{
+      type:'line',data:{labels,datasets:[{
         label:it.name,data,
         borderColor:it.color,backgroundColor:it.color+'15',
         tension:.4,pointRadius:6,pointBackgroundColor:it.color,
         pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:2.5,fill:true,
-      }]},
-      options:makeLineOpts(false)
+      }]},options:makeLineOpts(false)
     });
   });
-
   return rows.length;
 }
 
@@ -320,16 +315,38 @@ function renderMock(raw){
     {name:'한국사',sC:null,rC:27,tC:null,pC:null,gC:28,color:'#8b5cf6'},
   ];
 
-  // 카드
+  // ★ 모의고사 카드: 항상 6칸(3x2) 고정, 영어·한국사도 동일 크기
   const list=document.getElementById('mockList');
   rows.forEach(c=>{
     const div=document.createElement('div');div.className='m-card';
     let sHTML='';
     subjs.forEach(s=>{
-      const g=parseInt(c[s.gC]);if(!g)return;
-      const sub=s.sC?c[s.sC]:'';const rv=c[s.rC]||'';const pct=s.pC?c[s.pC]:'';
-      const detail=pct?`${rv}점 / ${pct}%`:`${rv}점`;
-      sHTML+=`<div class="m-subj"><div class="ms-name">${s.name}${sub?`<br>${sub}`:''}</div><div class="ms-grade mg${g}">${g}<span style="font-size:10px;font-weight:500">등급</span></div><div class="ms-detail">${detail}</div></div>`;
+      const g=parseInt(c[s.gC]);
+      const sub=s.sC?c[s.sC]:'';
+      const rv=c[s.rC]||'';
+      const pct=s.pC?c[s.pC]:'';
+
+      // 디테일: 백분위 있으면 "점수 / 백분위%", 없으면 "점수"
+      let detail='';
+      if(rv){
+        if(pct) detail=`${rv}점 / ${pct}%`;
+        else detail=`${rv}점`;
+      }
+
+      if(g){
+        sHTML+=`<div class="m-subj">
+          <div class="ms-name">${s.name}${sub?`<br>${sub}`:''}</div>
+          <div class="ms-grade mg${g}">${g}<span style="font-size:10px;font-weight:500">등급</span></div>
+          <div class="ms-detail">${detail}</div>
+        </div>`;
+      } else {
+        // 데이터 없어도 빈 칸으로 유지 (그리드 배열 유지)
+        sHTML+=`<div class="m-subj" style="opacity:.3">
+          <div class="ms-name">${s.name}</div>
+          <div class="ms-grade" style="color:#d1d5db">-</div>
+          <div class="ms-detail">미응시</div>
+        </div>`;
+      }
     });
     div.innerHTML=`<div class="m-exam">${c[0]}</div><div class="m-subjects">${sHTML}</div>`;
     list.appendChild(div);
@@ -356,7 +373,7 @@ function renderMock(raw){
 
   const labels=rows.map(r=>r[0]);
 
-  // ★ 전체 등급 추이 차트
+  // 전체 등급 차트
   const allDS=subjs.filter(s=>s.name!=='한국사').map(s=>({
     label:s.name,data:rows.map(r=>parseInt(r[s.gC])||null),
     borderColor:s.color,backgroundColor:s.color+'18',
@@ -375,15 +392,12 @@ function renderMock(raw){
   subjs.forEach(s=>{
     const data=rows.map(r=>parseInt(r[s.gC])||null);
     if(data.every(v=>v===null))return;
-    const card=document.createElement('div');card.className='card';
-    // 과목명 (탐구의 경우 실제 선택과목 표시)
     let dispName=s.name;
     if(s.sC){const names=[...new Set(rows.map(r=>r[s.sC]).filter(Boolean))];if(names.length)dispName+=` (${names.join(', ')})`}
+    const card=document.createElement('div');card.className='card';
     card.innerHTML=`<div class="card-title"><span class="dot" style="background:${s.color}"></span>${dispName}</div><div class="chart-box"><canvas></canvas></div>`;
     container.appendChild(card);
-    const canvas=card.querySelector('canvas');
 
-    // 등급 + 백분위 듀얼 차트 (백분위 있는 과목만)
     const datasets=[{
       label:'등급',data,yAxisID:'y',
       borderColor:s.color,backgroundColor:s.color+'15',
@@ -403,14 +417,11 @@ function renderMock(raw){
       scales.y2={reverse:false,min:0,max:100,position:'right',grid:{display:false},ticks:{font:{size:9},callback:v=>v+'%'}};
     }
 
-    new Chart(canvas,{
+    new Chart(card.querySelector('canvas'),{
       type:'line',data:{labels,datasets},
-      options:{
-        responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
         plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Noto Sans KR'},usePointStyle:true,pointStyle:'circle',padding:10}},
-        tooltip:{backgroundColor:'rgba(17,24,39,.92)',titleFont:{size:12},bodyFont:{size:11},padding:10,cornerRadius:8}},
-        scales
-      }
+        tooltip:{backgroundColor:'rgba(17,24,39,.92)',titleFont:{size:12},bodyFont:{size:11},padding:10,cornerRadius:8}},scales}
     });
   });
 
