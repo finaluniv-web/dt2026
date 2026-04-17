@@ -135,10 +135,10 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
   </div>
 </div>
 
-<!-- ★ 로딩 (로그인 후 데이터 로드 시) -->
+<!-- ★ 로딩 -->
 <div id="loading" style="display:none"><div class="ld-ring"></div><p>기록지를 불러오고 있습니다</p></div>
 
-<!-- ★ 메인 기록지 (로그인 후 표시) -->
+<!-- ★ 메인 기록지 -->
 <div class="wrap" id="app" style="display:none">
 
   <div class="profile-card">
@@ -156,9 +156,9 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
   </div>
 
   <div class="tab-wrap">
-    <button class="tab-btn on" data-t="fitness">🏃 실기</button>
-    <button class="tab-btn" data-t="mock">📝 모의고사</button>
-    <button class="tab-btn" data-t="gpa">📊 내신</button>
+    <button class="tab-btn on" data-t="fitness">실기기록</button>
+    <button class="tab-btn" data-t="mock">모의고사</button>
+    <button class="tab-btn" data-t="gpa">내신환산</button>
   </div>
 
   <div class="pane on" id="p-fitness">
@@ -205,20 +205,30 @@ const SID='1JT-y2ZF6GLQD4ZYzP8yxFp6flxxc_F_vCMXGdY-gogs';
 const sURL=n=>`https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(n)}`;
 const URLS={info:sURL('1.인적사항'),fitness:sURL('2.실기테스트'),mock:sURL('3.모의고사성적'),gpa:sURL('4.내신성적')};
 
-/* ★ URL에서 id 파라미터 읽기 */
 const studentId=new URLSearchParams(location.search).get('id')||'';
 let studentName='';
 
+/* ── CSV 파서 ── */
 function parseRow(l){const r=[];let c='',q=false;for(let i=0;i<l.length;i++){const ch=l[i];if(q){if(ch==='"'&&l[i+1]==='"'){c+='"';i++}else if(ch==='"')q=false;else c+=ch}else{if(ch==='"')q=true;else if(ch===','){r.push(c.trim());c=''}else c+=ch}}r.push(c.trim());return r}
 function parseCSV(t){const ls=t.split('\n').filter(l=>l.trim());if(ls.length<2)return[];const h=parseRow(ls[0]);return ls.slice(1).map(l=>{const c=parseRow(l);const o={};h.forEach((k,i)=>o[k]=c[i]||'');return o})}
-function fDate(d){if(!d||d.length<6)return d;const s=d.replace(/\D/g,'');return`${s.substring(2,4)}.${s.substring(4,6)}`}
-function fullDate(d){if(!d||d.length<6)return d;const s=d.replace(/\D/g,'');return`20${s.substring(0,2)}.${s.substring(2,4)}.${s.substring(4,6)}`}
+function fDate(d){if(!d||d.length<6)return d;const s=d.replace(/\D/g,'');if(s.length<6)return d;return`${s.substring(2,4)}.${s.substring(4,6)}`}
+function fullDate(d){if(!d||d.length<6)return d;const s=d.replace(/\D/g,'');if(s.length<6)return d;return`20${s.substring(0,2)}.${s.substring(2,4)}.${s.substring(4,6)}`}
 
 function makeLineOpts(reverse){
   return{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
     plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,24,39,.92)',titleFont:{size:12,family:'Noto Sans KR'},bodyFont:{size:11,family:'Noto Sans KR'},padding:10,cornerRadius:8,displayColors:true}},
     scales:{y:Object.assign({grid:{color:'#f3f4f6'},ticks:{font:{size:10}}},reverse?{reverse:true,min:1,max:9,ticks:{stepSize:1,font:{size:10}}}:{beginAtZero:false}),x:{grid:{display:false},ticks:{font:{size:10}}}}
   };
+}
+
+/* ★ ID로 학생 찾기 (parseInt 비교) */
+function findById(data,id){
+  const target=parseInt(id);
+  if(isNaN(target))return null;
+  return data.find(r=>{
+    const rowNo=parseInt(String(r['no']).replace(/\D/g,''));
+    return rowNo===target;
+  })||null;
 }
 
 /* ====== 로그인 ====== */
@@ -232,12 +242,11 @@ async function initLogin(){
     document.getElementById('loginBtn').style.display='none';
     return;
   }
-
   try{
     const res=await fetch(URLS.info);
     const text=await res.text();
     allInfoData=parseCSV(text);
-    const me=allInfoData.find(r=>String(r['no'])===String(studentId));
+    const me=findById(allInfoData,studentId);
     if(!me){
       document.getElementById('loginName').textContent='';
       document.getElementById('loginErr').textContent='존재하지 않는 학생 번호입니다.';
@@ -247,7 +256,7 @@ async function initLogin(){
     }
     document.getElementById('loginName').textContent=me['이름'];
     studentName=me['이름'];
-    document.title=`${studentName} - FINAL 기록지`;
+    document.title=studentName+' - FINAL 기록지';
   }catch(e){
     document.getElementById('loginName').textContent='';
     document.getElementById('loginErr').textContent='데이터를 불러올 수 없습니다. 새로고침 해주세요.';
@@ -257,18 +266,15 @@ async function initLogin(){
 function tryLogin(){
   const pw=document.getElementById('pwInput').value.trim();
   if(!pw){document.getElementById('loginErr').textContent='비밀번호를 입력하세요.';return;}
-
-  const me=allInfoData.find(r=>String(r['no'])===String(studentId));
+  const me=findById(allInfoData,studentId);
   if(!me){document.getElementById('loginErr').textContent='오류가 발생했습니다.';return;}
-
   if(String(me['비밀번호']).trim()!==pw){
     document.getElementById('loginErr').textContent='비밀번호가 틀렸습니다.';
     document.getElementById('pwInput').value='';
     document.getElementById('pwInput').focus();
     return;
   }
-
-  /* 로그인 성공 */
+  studentName=me['이름'];
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('loading').style.display='flex';
   loadRecords(me);
@@ -277,7 +283,7 @@ function tryLogin(){
 document.getElementById('loginBtn').addEventListener('click',tryLogin);
 document.getElementById('pwInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryLogin()});
 
-/* ====== 데이터 로드 (로그인 후) ====== */
+/* ====== 데이터 로드 ====== */
 async function loadRecords(info){
   try{
     const [fT,mT,gT]=await Promise.all([
@@ -297,7 +303,7 @@ async function loadRecords(info){
   }
   document.getElementById('loading').classList.add('hide');
   const a=document.getElementById('app');a.style.display='block';
-  setTimeout(()=>{a.style.transition='opacity .5s';a.style.opacity='1';},50);
+  setTimeout(()=>{a.style.transition='opacity .5s';a.style.opacity='1'},50);
 }
 
 /* ====== 프로필 ====== */
@@ -307,12 +313,12 @@ function renderProfile(info,fc,mc){
   const av=document.getElementById('av');
   if(cls){av.textContent=cls;av.style.fontSize=cls.length>3?'11px':'13px'}else{av.textContent=n.slice(-1);av.style.fontSize='20px'}
   document.getElementById('pName').textContent=n;
-  document.getElementById('pSub').textContent=`${info['학교']||''} ${info['학년']||''} · 개인 기록지`;
+  document.getElementById('pSub').textContent=(info['학교']||'')+' '+(info['학년']||'')+' · 개인 기록지';
   let h='';
-  if(cls) h+=`<span class="p-tag class-tag">${cls}</span>`;
-  if(info['성별']) h+=`<span class="p-tag">${info['성별']}</span>`;
-  if(fc) h+=`<span class="p-tag">🏃 실기 <b>${fc}회</b></span>`;
-  if(mc) h+=`<span class="p-tag">📝 모의고사 <b>${mc}회</b></span>`;
+  if(cls) h+='<span class="p-tag class-tag">'+cls+'</span>';
+  if(info['성별']) h+='<span class="p-tag">'+info['성별']+'</span>';
+  if(fc) h+='<span class="p-tag">실기 <b>'+fc+'회</b></span>';
+  if(mc) h+='<span class="p-tag">모의고사 <b>'+mc+'회</b></span>';
   document.getElementById('pTags').innerHTML=h;
 }
 
@@ -334,57 +340,63 @@ function renderFitness(raw){
   ];
   const tI=rows[0].length-2;
   const L=rows[rows.length-1],F=rows[0],st=document.getElementById('fitStats');
-  let s=`<div class="stat-box"><div class="sl">측정</div><div class="sv">${rows.length}</div><div class="su">회</div></div>`;
-  s+=`<div class="stat-box"><div class="sl">최신 총점</div><div class="sv">${L[tI]||'-'}</div><div class="su">/ 600</div></div>`;
-  if(rows.length>1){const d=parseFloat(L[tI])-parseFloat(F[tI]);s+=`<div class="stat-box"><div class="sl">성장</div><div class="sv ${d>=0?'up':'dn'}">${d>0?'+':''}${d}</div><div class="su">점</div></div>`}
-  items.forEach(it=>{const v=L[it.si];if(v)s+=`<div class="stat-box"><div class="sl">${it.name}</div><div class="sv">${v}</div><div class="su">점</div></div>`});
+  let s='<div class="stat-box"><div class="sl">측정</div><div class="sv">'+rows.length+'</div><div class="su">회</div></div>';
+  s+='<div class="stat-box"><div class="sl">최신 총점</div><div class="sv">'+(L[tI]||'-')+'</div><div class="su">/ 600</div></div>';
+  if(rows.length>1){const d=(parseFloat(L[tI])-parseFloat(F[tI])).toFixed(1);s+='<div class="stat-box"><div class="sl">성장</div><div class="sv '+(d>=0?'up':'dn')+'">'+(d>0?'+':'')+d+'</div><div class="su">점</div></div>'}
+  items.forEach(it=>{const v=L[it.si];if(v)s+='<div class="stat-box"><div class="sl">'+it.name+'</div><div class="sv">'+v+'</div><div class="su">점</div></div>'});
   st.innerHTML=s;
+
+  /* 표 */
   const hdr=document.getElementById('fitH');
   hdr.innerHTML='<th>날짜</th>';
-  items.forEach(it=>hdr.innerHTML+=`<th>${it.name}<br><span style="color:#d1d5db;font-weight:400">${it.u}</span></th><th>점수</th>`);
+  items.forEach(it=>{hdr.innerHTML+='<th>'+it.name+'<br><span style="color:#d1d5db;font-weight:400">'+it.u+'</span></th><th>점수</th>'});
   hdr.innerHTML+='<th style="background:#eef1ff">총점</th>';
   const tb=document.getElementById('fitB');
   rows.forEach((c,i)=>{
     const tr=document.createElement('tr');
-    let h=`<td class="dt">${fullDate(c[0])}</td>`;
+    let h='<td class="dt">'+fullDate(c[0])+'</td>';
     items.forEach(it=>{
       const sc=c[it.si]||'';let ch='';
-      if(i>0&&sc&&rows[i-1][it.si]){const d=parseFloat(sc)-parseFloat(rows[i-1][it.si]);if(d>0)ch=`<br><span class="chg-up">+${d}</span>`;else if(d<0)ch=`<br><span class="chg-dn">${d}</span>`}
-      h+=`<td>${c[it.ri]||'-'}</td><td>${sc||'-'}${ch}</td>`;
+      if(i>0&&sc&&rows[i-1][it.si]){const d=(parseFloat(sc)-parseFloat(rows[i-1][it.si])).toFixed(1);if(d>0)ch='<br><span class="chg-up">+'+d+'</span>';else if(d<0)ch='<br><span class="chg-dn">'+d+'</span>'}
+      h+='<td>'+(c[it.ri]||'-')+'</td><td>'+(sc||'-')+ch+'</td>';
     });
-    h+=`<td style="font-weight:800;background:#fafaff;color:var(--accent)">${c[tI]||'-'}</td>`;
+    h+='<td style="font-weight:800;background:#fafaff;color:var(--accent)">'+(c[tI]||'-')+'</td>';
     tr.innerHTML=h;tb.appendChild(tr);
   });
+
+  /* 총점 차트 */
   const dateLabels=rows.map(r=>fDate(r[0]));
   new Chart(document.getElementById('fitTotalChart'),{
     type:'line',data:{labels:dateLabels,datasets:[{
       label:'총점',data:rows.map(r=>parseFloat(r[tI])||null),
       borderColor:'#312e81',backgroundColor:'rgba(79,70,229,.1)',
       tension:.4,pointRadius:6,pointBackgroundColor:'#4f46e5',
-      pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:3,fill:true,
+      pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:3,fill:true
     }]},options:makeLineOpts(false)
   });
+
+  /* 종목별 차트 — X축: 기록값 */
   const container=document.getElementById('fitItemCharts');
   items.forEach(it=>{
     const scores=rows.map(r=>parseFloat(r[it.si])||null);
     const recs=rows.map(r=>r[it.ri]?(r[it.ri]+it.u):'');
     if(scores.every(v=>v===null))return;
     const card=document.createElement('div');card.className='card';
-    card.innerHTML=`<div class="card-title"><span class="dot" style="background:${it.color}"></span>${it.name} <span style="font-weight:400;color:#9ca3af;font-size:12px">(${it.u})</span></div><div class="chart-box"><canvas></canvas></div>`;
+    card.innerHTML='<div class="card-title"><span class="dot" style="background:'+it.color+'"></span>'+it.name+' <span style="font-weight:400;color:#9ca3af;font-size:12px">('+it.u+')</span></div><div class="chart-box"><canvas></canvas></div>';
     container.appendChild(card);
     new Chart(card.querySelector('canvas'),{
       type:'line',data:{labels:recs,datasets:[{
         label:it.name+' 점수',data:scores,
         borderColor:it.color,backgroundColor:it.color+'15',
         tension:.4,pointRadius:6,pointBackgroundColor:it.color,
-        pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:2.5,fill:true,
+        pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:2.5,fill:true
       }]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
         plugins:{legend:{display:false},
           tooltip:{backgroundColor:'rgba(17,24,39,.92)',titleFont:{size:12,family:'Noto Sans KR'},bodyFont:{size:11,family:'Noto Sans KR'},padding:10,cornerRadius:8,
             callbacks:{
-              title:ctx=>{const idx=ctx[0].dataIndex;return fullDate(rows[idx][0]);},
-              label:ctx=>{const idx=ctx.dataIndex;return '기록: '+recs[idx]+' / 점수: '+scores[idx]+'점';}
+              title:ctx=>{const idx=ctx[0].dataIndex;return fullDate(rows[idx][0])},
+              label:ctx=>{const idx=ctx.dataIndex;return '기록: '+recs[idx]+' / 점수: '+scores[idx]+'점'}
             }
           }
         },
@@ -405,6 +417,7 @@ function renderMock(raw){
   const rows=[];
   for(let i=1;i<lines.length;i++){const c=parseRow(lines[i]);if(c[1]===studentName)rows.push(c)}
   if(!rows.length){document.getElementById('mockNone').style.display='';return 0}
+
   const subjs=[
     {name:'국어',sC:5,rC:6,tC:7,pC:8,gC:9,color:'#ec4899'},
     {name:'수학',sC:10,rC:11,tC:12,pC:13,gC:14,color:'#4f46e5'},
@@ -413,6 +426,8 @@ function renderMock(raw){
     {name:'탐구2',sC:22,rC:23,tC:24,pC:25,gC:26,color:'#f59e0b'},
     {name:'한국사',sC:null,rC:27,tC:null,pC:null,gC:28,color:'#8b5cf6'},
   ];
+
+  /* 카드 */
   const list=document.getElementById('mockList');
   rows.forEach(c=>{
     const div=document.createElement('div');div.className='m-card';
@@ -422,28 +437,32 @@ function renderMock(raw){
       const sub=s.sC!==null?c[s.sC]:'';
       const rv=c[s.rC]||'';
       const pct=s.pC!==null?c[s.pC]:'';
-      let line1=rv?rv+'점':'';
-      let line2=pct?pct+'%':'';
-      let detail=line1&&line2?line1+' / '+line2:(line1||'-');
+      let detail=rv?rv+'점':'';
+      if(pct)detail+=(detail?' / ':'')+pct+'%';
+      if(!detail)detail='-';
       if(g){
-        sHTML+=`<div class="m-subj"><div class="ms-name">${s.name}${sub?'<br>'+sub:''}</div><div class="ms-grade mg${g}">${g}<span style="font-size:10px;font-weight:500">등급</span></div><div class="ms-detail">${detail}</div></div>`;
+        sHTML+='<div class="m-subj"><div class="ms-name">'+s.name+(sub?'<br>'+sub:'')+'</div><div class="ms-grade mg'+g+'">'+g+'<span style="font-size:10px;font-weight:500">등급</span></div><div class="ms-detail">'+detail+'</div></div>';
       }else{
-        sHTML+=`<div class="m-subj" style="opacity:.3"><div class="ms-name">${s.name}</div><div class="ms-grade" style="color:#d1d5db">-</div><div class="ms-detail">미응시</div></div>`;
+        sHTML+='<div class="m-subj" style="opacity:.3"><div class="ms-name">'+s.name+'</div><div class="ms-grade" style="color:#d1d5db">-</div><div class="ms-detail">미응시</div></div>';
       }
     });
-    div.innerHTML=`<div class="m-exam">${c[0]}</div><div class="m-subjects">${sHTML}</div>`;
+    div.innerHTML='<div class="m-exam">'+c[0]+'</div><div class="m-subjects">'+sHTML+'</div>';
     list.appendChild(div);
   });
+
+  /* 통계 */
   const L=rows[rows.length-1],st=document.getElementById('mockStats');
   const mg=[9,14,16].map(i=>parseInt(L[i])).filter(g=>g>0);
-  let s=`<div class="stat-box"><div class="sl">최근 시험</div><div class="sv" style="font-size:13px">${L[0]}</div></div>`;
-  if(mg.length){const avg=(mg.reduce((a,b)=>a+b,0)/mg.length).toFixed(1);s+=`<div class="stat-box"><div class="sl">주요 평균</div><div class="sv">${avg}</div><div class="su">등급</div></div>`}
-  subjs.forEach(sj=>{const g=L[sj.gC];if(g)s+=`<div class="stat-box"><div class="sl">${sj.name}</div><div class="sv mg${g}">${g}</div><div class="su">등급</div></div>`});
+  let s='<div class="stat-box"><div class="sl">최근 시험</div><div class="sv" style="font-size:13px">'+L[0]+'</div></div>';
+  if(mg.length){const avg=(mg.reduce((a,b)=>a+b,0)/mg.length).toFixed(1);s+='<div class="stat-box"><div class="sl">주요 평균</div><div class="sv">'+avg+'</div><div class="su">등급</div></div>'}
+  subjs.forEach(sj=>{const g=L[sj.gC];if(g)s+='<div class="stat-box"><div class="sl">'+sj.name+'</div><div class="sv mg'+g+'">'+g+'</div><div class="su">등급</div></div>'});
   st.innerHTML=s;
+
+  /* 상세 (카드형, 스크롤 없음) */
   const detailEl=document.getElementById('mockDetail');
   let dHTML='<div class="mock-detail-list">';
   rows.forEach(c=>{
-    dHTML+=`<div class="mock-detail-exam"><div class="mde-title">${c[0]}</div>`;
+    dHTML+='<div class="mock-detail-exam"><div class="mde-title">'+c[0]+'</div>';
     subjs.forEach(s=>{
       const g=parseInt(c[s.gC])||0;
       const gb=g>=1&&g<=9?'gb'+g:'gb9';
@@ -451,20 +470,22 @@ function renderMock(raw){
       const rv=c[s.rC]||'-';
       const std=s.tC!==null?(c[s.tC]||'-'):'';
       const pct=s.pC!==null?(c[s.pC]||'-'):'';
-      dHTML+=`<div class="mock-detail-row"><div class="mdr-left"><span class="mdr-subj">${s.name}</span><span class="mdr-select">${sub}</span></div><div class="mdr-right"><span class="mdr-label">원점수</span><span>${rv}</span>`;
-      if(s.tC!==null) dHTML+=`<span class="mdr-label">표준</span><span>${std}</span><span class="mdr-label">백분위</span><span>${pct}</span>`;
-      dHTML+=`<span class="mdr-grade ${gb}">${g||'-'}</span></div></div>`;
+      dHTML+='<div class="mock-detail-row"><div class="mdr-left"><span class="mdr-subj">'+s.name+'</span><span class="mdr-select">'+sub+'</span></div><div class="mdr-right"><span class="mdr-label">원점수</span><span>'+rv+'</span>';
+      if(s.tC!==null)dHTML+='<span class="mdr-label">표준</span><span>'+std+'</span><span class="mdr-label">백분위</span><span>'+pct+'</span>';
+      dHTML+='<span class="mdr-grade '+gb+'">'+(g||'-')+'</span></div></div>';
     });
-    dHTML+=`</div>`;
+    dHTML+='</div>';
   });
   dHTML+='</div>';
   detailEl.innerHTML=dHTML;
+
+  /* 전체 등급 차트 */
   const labels=rows.map(r=>r[0]);
   const allDS=subjs.filter(s=>s.name!=='한국사').map(s=>({
     label:s.name,data:rows.map(r=>parseInt(r[s.gC])||null),
     borderColor:s.color,backgroundColor:s.color+'18',
     tension:.4,pointRadius:6,pointBackgroundColor:s.color,
-    pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:2.5,
+    pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:2.5
   }));
   new Chart(document.getElementById('mockAllChart'),{
     type:'line',data:{labels,datasets:allDS},
@@ -472,14 +493,16 @@ function renderMock(raw){
       plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Noto Sans KR'},usePointStyle:true,pointStyle:'circle',padding:12}},tooltip:makeLineOpts(true).plugins.tooltip}
     })
   });
+
+  /* 과목별 차트 */
   const container=document.getElementById('mockSubjCharts');
   subjs.forEach(s=>{
     const data=rows.map(r=>parseInt(r[s.gC])||null);
     if(data.every(v=>v===null))return;
     let dispName=s.name;
-    if(s.sC!==null){const names=[...new Set(rows.map(r=>r[s.sC]).filter(Boolean))];if(names.length)dispName+=` (${names.join(', ')})`}
+    if(s.sC!==null){const names=[...new Set(rows.map(r=>r[s.sC]).filter(Boolean))];if(names.length)dispName+=' ('+names.join(', ')+')'}
     const card=document.createElement('div');card.className='card';
-    card.innerHTML=`<div class="card-title"><span class="dot" style="background:${s.color}"></span>${dispName}</div><div class="chart-box"><canvas></canvas></div>`;
+    card.innerHTML='<div class="card-title"><span class="dot" style="background:'+s.color+'"></span>'+dispName+'</div><div class="chart-box"><canvas></canvas></div>';
     container.appendChild(card);
     const datasets=[{label:'등급',data,yAxisID:'y',borderColor:s.color,backgroundColor:s.color+'15',tension:.4,pointRadius:6,pointBackgroundColor:s.color,pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:2.5,fill:true}];
     let scales={y:{reverse:true,min:1,max:9,ticks:{stepSize:1,font:{size:10}},grid:{color:'#f3f4f6'},position:'left'},x:{grid:{display:false},ticks:{font:{size:9}}}};
@@ -504,7 +527,7 @@ function renderGPA(gpa){
   const labels=['전과목','국어·영어','국·수·영','국·수·영·사','국·수·영·과','영어·탐구'];
   if(!keys.some(k=>gpa[k])){document.getElementById('gpaNone').style.display='';return}
   const g=document.getElementById('gpaGrid');
-  keys.forEach((k,i)=>{const v=gpa[k];if(!v)return;g.innerHTML+=`<div class="gpa-card"><div class="gc-label">${labels[i]}</div><div class="gc-val">${v}</div><div class="gc-sub">등급</div></div>`});
+  keys.forEach((k,i)=>{const v=gpa[k];if(!v)return;g.innerHTML+='<div class="gpa-card"><div class="gc-label">'+labels[i]+'</div><div class="gc-val">'+v+'</div><div class="gc-sub">등급</div></div>'});
 }
 
 /* ====== 탭 ====== */
