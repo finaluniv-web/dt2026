@@ -660,6 +660,67 @@ function showUnivDetail(u,info){
 
   let html='<button class="univ-back" onclick="hideUnivDetail()">← 목록으로</button>';
 
+  /* iframe이 없는 대학만 헤더+info 표시 */
+  if(!url){
+    html+='<div class="univ-detail-header">';
+    html+='<div class="udh-name">'+u.name+'</div>';
+    html+='<div class="udh-dept">'+u.dept+'</div>';
+    html+='<div class="udh-type">'+u.type+'</div>';
+    html+='<div class="udh-score-label">환산점수</div>';
+    html+='<div class="udh-score">'+u.score+'</div>';
+    html+='</div>';
+
+    if(info && Object.keys(info).length>1){
+      html+='<div class="univ-info-grid">';
+      if(info['모집인원']) html+='<div class="ui-item"><div class="ui-label">모집인원</div><div class="ui-val">'+info['모집인원']+'명</div></div>';
+      if(info['경쟁률']) html+='<div class="ui-item"><div class="ui-label">작년 경쟁률</div><div class="ui-val">'+info['경쟁률']+'</div></div>';
+      if(info['실기항목']) html+='<div class="ui-item"><div class="ui-label">실기항목</div><div class="ui-val">'+info['실기항목']+'</div></div>';
+      if(info['실기비율']) html+='<div class="ui-item"><div class="ui-label">실기비율</div><div class="ui-val">'+info['실기비율']+'</div></div>';
+      if(info['학생부비율']) html+='<div class="ui-item"><div class="ui-label">학생부비율</div><div class="ui-val">'+info['학생부비율']+'</div></div>';
+      if(info['수능비율']) html+='<div class="ui-item"><div class="ui-label">수능비율</div><div class="ui-val">'+info['수능비율']+'</div></div>';
+      html+='</div>';
+    }
+
+    html+='<div id="univRecords"><div class="no-data">기록을 불러오는 중...</div></div>';
+    html+='<div class="chart-box" style="margin-top:12px"><canvas id="univRecordChart"></canvas></div>';
+  }else{
+    /* iframe 대학: 헤더 없이 바로 iframe */
+    const params=new URLSearchParams({name:studentName,school:studentSchool,type:u.type});
+    html+='<div class="univ-iframe-wrap"><iframe id="univIframe" src="'+url+'?'+params.toString()+'" allowfullscreen scrolling="no"></iframe></div>';
+  }
+
+  detail.innerHTML=html;
+
+  if(url){
+    const iframe=document.getElementById('univIframe');
+    iframe.addEventListener('load',function(){
+      try{
+        const h=iframe.contentDocument.body.scrollHeight;
+        if(h>100) iframe.style.height=h+'px';
+        let count=0;
+        const timer=setInterval(()=>{
+          try{
+            const nh=iframe.contentDocument.body.scrollHeight;
+            if(nh>100) iframe.style.height=nh+'px';
+          }catch(ex){clearInterval(timer)}
+          if(++count>20)clearInterval(timer);
+        },500);
+      }catch(ex){
+        iframe.style.height='2000px';
+      }
+    });
+  }
+
+  if(!url){
+    const tabName=u.name+' '+u.dept;
+    const csvUrl=uURL(tabName);
+    loadUnivRecords(csvUrl,u.type);
+  }
+
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+
   /* 헤더 */
   html+='<div class="univ-detail-header">';
   html+='<div class="udh-name">'+u.name+'</div>';
