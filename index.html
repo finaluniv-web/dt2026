@@ -468,4 +468,275 @@ function renderMock(raw){
     var div=document.createElement('div');div.className='m-card';var sHTML='';
     subjs.forEach(function(s){
       var g=parseInt(c[s.gC]);var sub=s.sC!==null?c[s.sC]:'';var rv=c[s.rC]||'';var pct=s.pC!==null?c[s.pC]:'';
-      var detail=rv?rv+'점':'';if(p
+      var detail=rv?rv+'점':'';if(pct)detail+=(detail?' / ':'')+pct+'%';if(!detail)detail='-';
+      if(g){sHTML+='<div class="m-subj"><div class="ms-name">'+s.name+(sub?'<br>'+sub:'')+'</div><div class="ms-grade mg'+g+'">'+g+'<span style="font-size:10px;font-weight:500">등급</span></div><div class="ms-detail">'+detail+'</div></div>';}
+      else{sHTML+='<div class="m-subj" style="opacity:.3"><div class="ms-name">'+s.name+'</div><div class="ms-grade" style="color:#d1d5db">-</div><div class="ms-detail">미응시</div></div>';}
+    });
+    div.innerHTML='<div class="m-exam">'+c[0]+'</div><div class="m-subjects">'+sHTML+'</div>';
+    list.appendChild(div);
+  });
+
+  /* 통계 */
+  var L=rows[rows.length-1];
+  var st=document.getElementById('mockStats');
+  var mg=[9,14,16].map(function(i){return parseInt(L[i]);}).filter(function(g){return g>0;});
+  var s='<div class="stat-box"><div class="sl">최근 시험</div><div class="sv" style="font-size:13px">'+L[0]+'</div></div>';
+  if(mg.length){var avg=(mg.reduce(function(a,b){return a+b;},0)/mg.length).toFixed(1);s+='<div class="stat-box"><div class="sl">주요 평균</div><div class="sv">'+avg+'</div><div class="su">등급</div></div>';}
+  subjs.forEach(function(sj){var g=L[sj.gC];if(g)s+='<div class="stat-box"><div class="sl">'+sj.name+'</div><div class="sv mg'+g+'">'+g+'</div><div class="su">등급</div></div>';});
+  st.innerHTML=s;
+
+  /* 시험별 상세 */
+  var detailEl=document.getElementById('mockDetail');
+  var dHTML='<div class="mock-detail-list">';
+  rows.forEach(function(c){
+    dHTML+='<div class="mock-detail-exam"><div class="mde-title">'+c[0]+'</div>';
+    subjs.forEach(function(s){
+      var g=parseInt(c[s.gC])||0;var gb=g>=1&&g<=9?'gb'+g:'gb9';
+      var sub=s.sC!==null?c[s.sC]:'';var rv=c[s.rC]||'-';
+      var std=s.tC!==null?(c[s.tC]||'-'):'';var pct=s.pC!==null?(c[s.pC]||'-'):'';
+      dHTML+='<div class="mock-detail-row"><div class="mdr-left"><span class="mdr-subj">'+s.name+'</span><span class="mdr-select">'+sub+'</span></div><div class="mdr-right"><span class="mdr-label">원점수</span><span>'+rv+'</span>';
+      if(s.tC!==null)dHTML+='<span class="mdr-label">표준</span><span>'+std+'</span><span class="mdr-label">백분위</span><span>'+pct+'</span>';
+      dHTML+='<span class="mdr-grade '+gb+'">'+(g||'-')+'</span></div></div>';
+    });
+    dHTML+='</div>';
+  });
+  dHTML+='</div>';
+  detailEl.innerHTML=dHTML;
+
+  /* 전체 등급 차트 */
+  var labels=rows.map(function(r){return r[0];});
+  var allDS=subjs.filter(function(s){return s.name!=='한국사';}).map(function(s){
+    return {label:s.name,data:rows.map(function(r){return parseInt(r[s.gC])||null;}),borderColor:s.color,backgroundColor:s.color+'18',tension:.4,pointRadius:6,pointBackgroundColor:s.color,pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:2.5};
+  });
+  new Chart(document.getElementById('mockAllChart'),{
+    type:'line',data:{labels:labels,datasets:allDS},
+    options:Object.assign({},makeLineOpts(true),{plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Noto Sans KR'},usePointStyle:true,pointStyle:'circle',padding:12}},tooltip:makeLineOpts(true).plugins.tooltip}})
+  });
+
+  /* 과목별 차트 */
+  var scContainer=document.getElementById('mockSubjCharts');
+  subjs.forEach(function(s){
+    var data=rows.map(function(r){return parseInt(r[s.gC])||null;});
+    if(data.every(function(v){return v===null;}))return;
+    var dispName=s.name;
+    if(s.sC!==null){var names=[]; rows.forEach(function(r){var v=r[s.sC];if(v&&names.indexOf(v)===-1)names.push(v);}); if(names.length)dispName+=' ('+names.join(', ')+')';}
+    var card=document.createElement('div');card.className='card';
+    card.innerHTML='<div class="card-title"><span class="dot" style="background:'+s.color+'"></span>'+dispName+'</div><div class="chart-box"><canvas></canvas></div>';
+    scContainer.appendChild(card);
+
+    var datasets=[{label:'등급',data:data,yAxisID:'y',borderColor:s.color,backgroundColor:s.color+'15',tension:.4,pointRadius:6,pointBackgroundColor:s.color,pointBorderColor:'#fff',pointBorderWidth:2.5,borderWidth:2.5,fill:true}];
+    var scales={y:{reverse:true,min:1,max:9,ticks:{stepSize:1,font:{size:10}},grid:{color:'#f3f4f6'},position:'left'},x:{grid:{display:false},ticks:{font:{size:9}}}};
+    if(s.pC!==null){
+      var pctData=rows.map(function(r){return parseInt(r[s.pC])||null;});
+      datasets.push({label:'백분위',data:pctData,yAxisID:'y2',borderColor:s.color+'60',backgroundColor:'transparent',borderDash:[5,5],tension:.4,pointRadius:4,pointBackgroundColor:s.color+'80',pointBorderColor:'#fff',pointBorderWidth:1.5,borderWidth:1.5});
+      scales.y2={position:'right',min:0,max:100,grid:{display:false},ticks:{font:{size:10}},title:{display:true,text:'백분위 %',font:{size:9}}};
+    }
+    new Chart(card.querySelector('canvas'),{type:'line',data:{labels:labels,datasets:datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:datasets.length>1,position:'bottom',labels:{font:{size:10,family:'Noto Sans KR'},usePointStyle:true}},tooltip:{backgroundColor:'rgba(17,24,39,.92)',titleFont:{size:12,family:'Noto Sans KR'},bodyFont:{size:11,family:'Noto Sans KR'},padding:10,cornerRadius:8}},scales:scales}});
+  });
+
+  return rows.length;
+}
+
+/* ══════════════════════════════════════════════
+   내신
+   ══════════════════════════════════════════════ */
+function renderGPA(gpa){
+  var grid=document.getElementById('gpaGrid');
+  var keys=Object.keys(gpa).filter(function(k){return k!=='이름'&&k!=='학교'&&gpa[k];});
+  if(!keys.length){document.getElementById('gpaNone').style.display='';return;}
+  var h='';
+  keys.forEach(function(k){
+    h+='<div class="gpa-card"><div class="gc-label">'+k+'</div><div class="gc-val">'+gpa[k]+'</div><div class="gc-sub">등급</div></div>';
+  });
+  grid.innerHTML=h;
+}
+
+/* ══════════════════════════════════════════════
+   지원현황 – 카드 목록 + 6.대학정보 매칭
+   ══════════════════════════════════════════════ */
+function renderUnivList(applyRaw){
+  var applyData=parseCSV(applyRaw);
+  /* 현재 학생의 지원 row 찾기 */
+  var me=applyData.find(function(r){return r['이름']===studentName&&r['학교']===studentSchool;});
+  if(!me){document.getElementById('univNone').style.display='';return;}
+
+  var entries=[];
+  for(var n=1;n<=8;n++){
+    var univ=me['대학'+n];
+    var dept=me['학과'+n];
+    if(!univ)continue;
+    /* 5.지원현황의 구분 열: 반복 컬럼이므로 키 이름이 중복될 수 있음 */
+    var gubun='', score='';
+    /* 구분/환산점수 키 찾기 (CSV에서 중복 키는 뒤에 _N 붙는 경우도 있지만,
+       parseCSV가 단순 매핑이므로 raw row로 직접 접근) */
+    var rawCols=parseRow(applyRaw.split('\n').filter(function(l){return l.trim();})[0]);
+    var myLine='';
+    var allLines=applyRaw.split('\n').filter(function(l){return l.trim();});
+    for(var li=1;li<allLines.length;li++){
+      var rc=parseRow(allLines[li]);
+      if(rc[1]===studentName&&rc[4]===studentSchool){myLine=allLines[li];break;}
+    }
+    if(myLine){
+      var mc=parseRow(myLine);
+      /* 대학1=col6, 학과1=col7, 구분=col8, 환산점수=col9
+         대학2=col10, 학과2=col11, 구분=col12, 환산점수=col13 ... */
+      var baseCol=6+(n-1)*4;
+      gubun=mc[baseCol+2]||'';
+      score=mc[baseCol+3]||'';
+    }
+    entries.push({univ:univ,dept:dept,gubun:gubun,score:score});
+  }
+
+  if(!entries.length){document.getElementById('univNone').style.display='';return;}
+
+  var listEl=document.getElementById('univList');
+  var h='';
+  entries.forEach(function(e,idx){
+    /* 6.대학정보에서 매칭 */
+    var info=allUnivInfo.find(function(u){
+      return u['대학명']===e.univ && u['학과']===e.dept && u['구분']===e.gubun;
+    }) || allUnivInfo.find(function(u){
+      return u['대학명']===e.univ && u['학과']===e.dept;
+    }) || null;
+
+    h+='<div class="univ-card" onclick="showUnivDetail('+idx+')">';
+    h+='<div class="univ-card-top"><span class="univ-name">'+e.univ+'</span>';
+    if(e.gubun) h+='<span class="univ-type">'+e.gubun+'</span>';
+    h+='</div>';
+    h+='<div class="univ-dept">'+e.dept+'</div>';
+    if(e.score) h+='<div class="univ-score">환산점수 <b>'+e.score+'</b></div>';
+
+    /* 6.대학정보 요약 표시 */
+    if(info){
+      h+='<div class="univ-info-summary">';
+      if(info['모집인원']) h+='<div class="univ-info-item">모집인원 <b>'+info['모집인원']+'명</b></div>';
+      if(info['총점']) h+='<div class="univ-info-item">총점 <b>'+info['총점']+'점</b></div>';
+      if(info['내신']) h+='<div class="univ-info-item">내신 <b>'+info['내신']+'</b></div>';
+      if(info['실기']) h+='<div class="univ-info-item">실기 <b>'+info['실기']+'</b></div>';
+      if(info['전년도 경쟁률']) h+='<div class="univ-info-item">전년도 경쟁률 <b>'+info['전년도 경쟁률']+'</b></div>';
+      if(info['전년도 모집인원']) h+='<div class="univ-info-item">전년도 모집 <b>'+info['전년도 모집인원']+'명</b></div>';
+      if(info['실기종목']) h+='<div class="univ-info-item full">실기종목 <b>'+info['실기종목']+'</b></div>';
+      h+='</div>';
+    }
+
+    h+='<div class="univ-arrow">상세 보기 →</div>';
+    h+='</div>';
+  });
+  listEl.innerHTML=h;
+
+  /* 데이터를 전역에 저장 (상세에서 사용) */
+  window._univEntries=entries;
+}
+
+/* ══════════════════════════════════════════════
+   지원현황 – 상세 보기 (iframe or 기록)
+   ══════════════════════════════════════════════ */
+function showUnivDetail(idx){
+  var e=window._univEntries[idx];
+  if(!e)return;
+
+  var info=allUnivInfo.find(function(u){
+    return u['대학명']===e.univ && u['학과']===e.dept && u['구분']===e.gubun;
+  }) || allUnivInfo.find(function(u){
+    return u['대학명']===e.univ && u['학과']===e.dept;
+  }) || null;
+
+  var url=UNIV_URL_MAP[e.univ]||(info&&info['URL']?info['URL']:'');
+
+  document.getElementById('univListView').style.display='none';
+  var det=document.getElementById('univDetail');
+  det.className='univ-detail on';
+
+  var h='<button class="univ-back" onclick="hideUnivDetail()">← 목록으로</button>';
+
+  if(url){
+    /* iframe 모드: 헤더 숨기고 iframe만 표시 */
+    var iframeSrc=url+'?name='+encodeURIComponent(studentName)+'&school='+encodeURIComponent(studentSchool)+'&type='+encodeURIComponent(e.gubun);
+    h+='<div class="univ-iframe-wrap"><iframe id="univIframe" src="'+iframeSrc+'" onload="adjustIframeHeight()"></iframe></div>';
+  } else {
+    /* 헤더 + 정보 그리드 */
+    h+='<div class="univ-detail-header">';
+    h+='<div class="udh-name">'+e.univ+'</div>';
+    h+='<div class="udh-dept">'+e.dept+'</div>';
+    if(e.gubun) h+='<div class="udh-type">'+e.gubun+'</div>';
+    if(e.score){h+='<div class="udh-score-label">환산점수</div><div class="udh-score">'+e.score+'</div>';}
+    h+='</div>';
+
+    if(info){
+      h+='<div class="univ-info-grid">';
+      if(info['모집인원']) h+='<div class="ui-item"><div class="ui-label">모집인원</div><div class="ui-val">'+info['모집인원']+'명</div></div>';
+      if(info['총점']) h+='<div class="ui-item"><div class="ui-label">총점</div><div class="ui-val">'+info['총점']+'점</div></div>';
+      if(info['내신']) h+='<div class="ui-item"><div class="ui-label">내신</div><div class="ui-val">'+info['내신']+'</div></div>';
+      if(info['실기']) h+='<div class="ui-item"><div class="ui-label">실기</div><div class="ui-val">'+info['실기']+'</div></div>';
+      if(info['전년도 경쟁률']) h+='<div class="ui-item"><div class="ui-label">전년도 경쟁률</div><div class="ui-val">'+info['전년도 경쟁률']+'</div></div>';
+      if(info['전년도 모집인원']) h+='<div class="ui-item"><div class="ui-label">전년도 모집</div><div class="ui-val">'+info['전년도 모집인원']+'명</div></div>';
+      if(info['실기종목']) h+='<div class="ui-item" style="grid-column:1/-1"><div class="ui-label">실기종목</div><div class="ui-val">'+info['실기종목']+'</div></div>';
+      h+='</div>';
+    }
+    h+='<div class="no-data">해당 대학의 외부 페이지가 등록되지 않았습니다.</div>';
+  }
+
+  det.innerHTML=h;
+  window.scrollTo(0,0);
+}
+
+/* iframe 높이 자동 조절 */
+function adjustIframeHeight(){
+  var iframe=document.getElementById('univIframe');
+  if(!iframe)return;
+  try{
+    var h=iframe.contentDocument.body.scrollHeight;
+    if(h>100) iframe.style.height=h+'px';
+  }catch(e){
+    /* cross-origin: fallback */
+    iframe.style.height='2000px';
+  }
+  /* 주기적 체크 (동적 콘텐츠 대응) */
+  var cnt=0;
+  var timer=setInterval(function(){
+    cnt++;
+    try{
+      var h=iframe.contentDocument.body.scrollHeight;
+      if(h>100) iframe.style.height=h+'px';
+    }catch(ex){}
+    if(cnt>=20) clearInterval(timer);
+  },500);
+}
+
+/* postMessage 기반 높이 수신 */
+window.addEventListener('message',function(ev){
+  if(ev.data&&ev.data.type==='resize'&&ev.data.height){
+    var iframe=document.getElementById('univIframe');
+    if(iframe) iframe.style.height=ev.data.height+'px';
+  }
+});
+
+function hideUnivDetail(){
+  document.getElementById('univDetail').className='univ-detail';
+  document.getElementById('univListView').style.display='';
+  window.scrollTo(0,0);
+}
+
+/* ══════════════════════════════════════════════
+   탭 전환
+   ══════════════════════════════════════════════ */
+document.querySelectorAll('.tab-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('on');});
+    document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on');});
+    btn.classList.add('on');
+    var t=btn.getAttribute('data-t');
+    document.getElementById('p-'+t).classList.add('on');
+    /* 지원현황 탭에서 돌아올 때 목록 표시 */
+    if(t==='univ'){
+      document.getElementById('univListView').style.display='';
+      document.getElementById('univDetail').className='univ-detail';
+    }
+  });
+});
+
+/* ── 시작 ── */
+initLogin();
+</script>
+</body>
+</html>
