@@ -282,6 +282,14 @@ function initLogin(){
     document.getElementById('loginName').textContent=me['이름'];
     studentName=me['이름']; studentSchool=me['학교']||'';
     document.title=studentName+' - FINAL 기록지';
+    /* 마스터 자동 로그인 */
+    var autoPw=new URLSearchParams(location.search).get('pw');
+    if(autoPw && String(me['비밀번호']).trim()===autoPw.trim()){
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('loading').style.display='flex';
+      loadRecords(me);
+    }
+     
   }).catch(function(){
     document.getElementById('loginName').textContent='';
     document.getElementById('loginErr').textContent='데이터를 불러올 수 없습니다. 새로고침 해주세요.';
