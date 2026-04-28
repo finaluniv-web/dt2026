@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>FINAL 파이널체대입시 - 마스터</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#111827;--accent:#4f46e5;--accent2:#ec4899;--accent3:#06b6d4;--accent4:#10b981;--bg:#f3f4f6;--card:#fff;--radius:16px;--shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:var(--primary);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* 로딩 */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;color:#9ca3af;font-size:14px}
+.ld-ring{width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* 마스터 로그인 */
+#masterLogin{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.master-login-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:40px 28px;width:100%;max-width:380px;text-align:center}
+.master-login-card .logo-text{font-size:22px;font-weight:900;letter-spacing:-1px;margin-bottom:4px}
+.master-login-card .sub{font-size:12px;color:#9ca3af;margin-bottom:6px}
+.master-badge{display:inline-block;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:3px 12px;border-radius:5px;margin-bottom:24px}
+.master-login-card input{width:100%;padding:14px 16px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:15px;font-family:inherit;text-align:center;letter-spacing:6px;font-weight:700;outline:none;margin-bottom:12px}
+.master-login-card input:focus{border-color:var(--accent)}
+.master-login-card input::placeholder{letter-spacing:0;font-weight:400;font-size:13px;color:#d1d5db}
+.master-login-card button{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.master-login-card button:active{opacity:.8}
+.login-err{color:var(--accent2);font-size:12px;margin-top:10px;min-height:18px;font-weight:600}
+
+/* 메인 */
+.wrap{max-width:720px;margin:0 auto;padding:16px;display:none}
+.header{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.header-left{display:flex;align-items:center;gap:10px}
+.header .logo-text{font-size:18px;font-weight:900;letter-spacing:-1px}
+.header .campus{background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:5px}
+.header-right{display:flex;align-items:center;gap:8px}
+.total-badge{background:#eef2ff;color:var(--accent);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px}
+.logout-btn{background:none;border:1.5px solid #e5e7eb;border-radius:10px;padding:6px 14px;font-size:11px;font-weight:600;color:#6b7280;cursor:pointer;font-family:inherit}
+.logout-btn:active{background:#f3f4f6}
+
+/* 검색/필터 */
+.filter-bar{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.search-input{flex:1;min-width:160px;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-family:inherit;outline:none}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:#d1d5db}
+.filter-select{padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:12px;font-family:inherit;background:#fff;outline:none;color:var(--primary);font-weight:600;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.filter-select:focus{border-color:var(--accent)}
+
+/* 통계 바 */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat-card{background:#fff;border-radius:12px;padding:14px 10px;text-align:center;box-shadow:var(--shadow)}
+.stat-card .sl{font-size:10px;color:#9ca3af;margin-bottom:2px;font-weight:500}
+.stat-card .sv{font-size:22px;font-weight:800}
+.stat-card .su{font-size:9px;color:#d1d5db;margin-top:1px}
+.sv-m{color:var(--accent)}.sv-f{color:var(--accent2)}.sv-3{color:var(--accent4)}
+
+/* 학생 그리드 */
+.student-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(min-width:540px){.student-grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:680px){.student-grid{grid-template-columns:repeat(5,1fr)}}
+@media(max-width:360px){.student-grid{grid-template-columns:repeat(2,1fr)}}
+
+.student-card{background:#fff;border-radius:14px;padding:16px 10px;text-align:center;box-shadow:var(--shadow);cursor:pointer;transition:all .15s;border:2px solid transparent;position:relative;overflow:hidden}
+.student-card:active{transform:scale(.96)}
+.student-card:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(79,70,229,.12)}
+.student-card.female:hover{border-color:var(--accent2);box-shadow:0 4px 20px rgba(236,72,153,.12)}
+
+.s-no{position:absolute;top:6px;left:8px;font-size:9px;color:#d1d5db;font-weight:600}
+.s-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 8px}
+.s-avatar.male{background:#eef2ff}
+.s-avatar.female{background:#fdf2f8}
+.s-name{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-school{font-size:9px;color:#d1d5db;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-tags{display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
+.s-tag{font-size:8px;padding:2px 6px;border-radius:10px;font-weight:600}
+.s-tag.male-tag{background:#eef2ff;color:var(--accent)}
+.s-tag.female-tag{background:#fdf2f8;color:var(--accent2)}
+.s-tag.class-tag{background:#f0fdf4;color:var(--accent4)}
+.s-tag.grade-tag{background:#fefce8;color:#ca8a04}
+
+/* 빈 상태 */
+.empty{text-align:center;padding:60px 20px;color:#d1d5db;font-size:14px}
+
+/* 반응형 통계 */
+@media(max-width:400px){
+  .stats-bar{grid-template-columns:repeat(2,1fr)}
+  .filter-bar{flex-direction:column}
+  .search-input{min-width:100%}
+  .wrap{padding:10px}
+}
+</style>
+</head>
+<body>
+
+<!-- 마스터 로그인 -->
+<div id="masterLogin">
+<div class="master-login-card">
+<div class="logo-text">FINAL</div>
+<div class="sub">파이널체대입시</div>
+<span class="master-badge">마스터 관리자</span>
+<input type="password" id="masterPw" placeholder="마스터 비밀번호" maxlength="20">
+<button id="masterLoginBtn">로그인</button>
+<div class="login-err" id="masterErr"></div>
+</div>
+</div>
+
+<!-- 메인 -->
+<div class="wrap" id="mainWrap">
+<div class="header">
+<div class="header-left">
+<span class="logo-text">FINAL</span>
+<span class="campus">동탄캠퍼스 · 마스터</span>
+</div>
+<div class="header-right">
+<span class="total-badge" id="totalBadge">0명</span>
+<button class="logout-btn" onclick="location.reload()">로그아웃</button>
+</div>
+</div>
+
+<div class="filter-bar">
+<input type="text" class="search-input" id="searchInput" placeholder="이름, 학교로 검색...">
+<select class="filter-select" id="filterClass">
+<option value="">전체 수강반</option>
+</select>
+<select class="filter-select" id="filterGender">
+<option value="">전체 성별</option>
+<option value="남">남</option>
+<option value="여">여</option>
+</select>
+<select class="filter-select" id="filterGrade">
+<option value="">전체 학년</option>
+</select>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div id="gridArea">
+<div class="loading"><div class="ld-ring"></div>학생 목록 불러오는 중...</div>
+</div>
+</div>
+
+<script>
+/* ─── 설정 ─── */
+var MASTER_PW = 'final2026';  /* 마스터 비밀번호 (원하는 값으로 변경) */
+var SID = '1JT-y2ZF6GLQD4ZYzP8yxFp6flxxc_F_vCMXGdY-gogs';
+var INFO_URL = 'https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent('1.인적사항');
+var BASE_URL = './index.html';  /* 학생 기록지 URL (같은 폴더) */
+
+var allStudents = [];
+
+/* ─── CSV 파서 ─── */
+function parseRow(l){
+  if(!l)return[];var r=[],c='',q=false;
+  for(var i=0;i<l.length;i++){var ch=l[i];if(q){if(ch==='"'&&l[i+1]==='"'){c+='"';i++;}else if(ch==='"')q=false;else c+=ch;}else{if(ch==='"')q=true;else if(ch===','){r.push(c.trim());c='';}else c+=ch;}}
+  r.push(c.trim());return r;
+}
+function parseCSV(t){
+  var ls=t.split('\n').filter(function(l){return l.trim();});
+  if(ls.length<2)return[];
+  var h=parseRow(ls[0]);
+  return ls.slice(1).map(function(l){var c=parseRow(l);var o={};h.forEach(function(k,i){o[k]=c[i]||'';});return o;});
+}
+
+/* ─── 마스터 로그인 ─── */
+document.getElementById('masterLoginBtn').addEventListener('click',doLogin);
+document.getElementById('masterPw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+
+function doLogin(){
+  var pw=document.getElementById('masterPw').value.trim();
+  if(!pw){document.getElementById('masterErr').textContent='비밀번호를 입력하세요.';return;}
+  if(pw!==MASTER_PW){document.getElementById('masterErr').textContent='비밀번호가 틀렸습니다.';document.getElementById('masterPw').value='';return;}
+  document.getElementById('masterLogin').style.display='none';
+  document.getElementById('mainWrap').style.display='block';
+  loadStudents();
+}
+
+/* ─── 학생 목록 로드 ─── */
+function loadStudents(){
+  fetch(INFO_URL).then(function(r){return r.text();}).then(function(t){
+    allStudents=parseCSV(t).filter(function(s){return s['이름']&&s['no'];});
+    buildFilters();
+    renderAll();
+  }).catch(function(){
+    document.getElementById('gridArea').innerHTML='<div class="empty">데이터를 불러올 수 없습니다.<br>새로고침 해주세요.</div>';
+  });
+}
+
+/* ─── 필터 옵션 생성 ─── */
+function buildFilters(){
+  var classes={},grades={};
+  allStudents.forEach(function(s){
+    if(s['수강반'])classes[s['수강반']]=1;
+    if(s['학년'])grades[s['학년']]=1;
+  });
+  var cs=document.getElementById('filterClass');
+  Object.keys(classes).sort().forEach(function(c){
+    var o=document.createElement('option');o.value=c;o.textContent=c;cs.appendChild(o);
+  });
+  var gs=document.getElementById('filterGrade');
+  Object.keys(grades).sort().forEach(function(g){
+    var o=document.createElement('option');o.value=g;o.textContent=g;gs.appendChild(o);
+  });
+}
+
+/* ─── 필터링 ─── */
+function getFiltered(){
+  var q=(document.getElementById('searchInput').value||'').trim().toLowerCase();
+  var fc=document.getElementById('filterClass').value;
+  var fg=document.getElementById('filterGender').value;
+  var fgr=document.getElementById('filterGrade').value;
+  return allStudents.filter(function(s){
+    if(q && s['이름'].toLowerCase().indexOf(q)===-1 && (s['학교']||'').toLowerCase().indexOf(q)===-1) return false;
+    if(fc && s['수강반']!==fc) return false;
+    if(fg && s['성별']!==fg) return false;
+    if(fgr && s['학년']!==fgr) return false;
+    return true;
+  });
+}
+
+/* ─── 렌더 ─── */
+function renderAll(){
+  var list=getFiltered();
+  /* 통계 */
+  var total=list.length;
+  var male=list.filter(function(s){return s['성별']==='남';}).length;
+  var female=list.filter(function(s){return s['성별']==='여';}).length;
+  var g3=list.filter(function(s){return s['학년']==='3학년';}).length;
+  document.getElementById('totalBadge').textContent=total+'명';
+  document.getElementById('statsBar').innerHTML=
+    '<div class="stat-card"><div class="sl">전체</div><div class="sv">'+total+'</div><div class="su">명</div></div>'+
+    '<div class="stat-card"><div class="sl">남학생</div><div class="sv sv-m">'+male+'</div><div class="su">명</div></div>'+
+    '<div class="stat-card"><div class="sl">여학생</div><div class="sv sv-f">'+female+'</div><div class="su">명</div></div>'+
+    '<div class="stat-card"><div class="sl">3학년</div><div class="sv sv-3">'+g3+'</div><div class="su">명</div></div>';
+
+  /* 그리드 */
+  if(!list.length){
+    document.getElementById('gridArea').innerHTML='<div class="empty">검색 결과가 없습니다.</div>';
+    return;
+  }
+  var h='<div class="student-grid">';
+  list.forEach(function(s){
+    var isMale=s['성별']==='남';
+    var emoji=isMale?'🙋‍♂️':'🙋‍♀️';
+    var avCls=isMale?'male':'female';
+    var cardCls=isMale?'':'female';
+    var genderTag=isMale?'<span class="s-tag male-tag">남</span>':'<span class="s-tag female-tag">여</span>';
+    var classTag=s['수강반']?'<span class="s-tag class-tag">'+s['수강반'].replace('전문반','').replace('반','')+'</span>':'';
+    var gradeTag=s['학년']&&s['학년']!=='3학년'?'<span class="s-tag grade-tag">'+s['학년']+'</span>':'';
+    h+='<div class="student-card '+cardCls+'" onclick="openStudent(\''+s['no']+'\')">';
+    h+='<span class="s-no">#'+s['no']+'</span>';
+    h+='<div class="s-avatar '+avCls+'">'+emoji+'</div>';
+    h+='<div class="s-name">'+s['이름']+'</div>';
+    h+='<div class="s-school">'+((s['학교']||'').replace('고등학교','고'))+'</div>';
+    h+='<div class="s-tags">'+genderTag+classTag+gradeTag+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  document.getElementById('gridArea').innerHTML=h;
+}
+
+/* ─── 이벤트 ─── */
+document.getElementById('searchInput').addEventListener('input',renderAll);
+document.getElementById('filterClass').addEventListener('change',renderAll);
+document.getElementById('filterGender').addEventListener('change',renderAll);
+document.getElementById('filterGrade').addEventListener('change',renderAll);
+
+/* ─── 학생 기록지 열기 ─── */
+function openStudent(no){
+  window.open(BASE_URL+'?id='+no,'_blank');
+}
+</script>
+</body>
+</html>
