@@ -27,7 +27,7 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 .login-err{color:var(--accent2);font-size:12px;margin-top:10px;min-height:18px;font-weight:600}
 
 .wrap{max-width:720px;margin:0 auto;padding:16px;display:none}
-.header{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.header{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .header-left{display:flex;align-items:center;gap:10px}
 .header .logo-text{font-size:18px;font-weight:900;letter-spacing:-1px}
 .header .campus{background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:5px}
@@ -43,14 +43,13 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 .filter-select{padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:12px;font-family:inherit;background:#fff;outline:none;color:var(--primary);font-weight:600;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
 .filter-select:focus{border-color:var(--accent)}
 
-.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stats-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
 .stat-card{background:#fff;border-radius:12px;padding:14px 10px;text-align:center;box-shadow:var(--shadow)}
 .stat-card .sl{font-size:10px;color:#9ca3af;margin-bottom:2px;font-weight:500}
 .stat-card .sv{font-size:22px;font-weight:800}
 .stat-card .su{font-size:9px;color:#d1d5db;margin-top:1px}
-.sv-m{color:var(--accent)}.sv-f{color:var(--accent2)}.sv-3{color:var(--accent4)}
+.sv-m{color:var(--accent)}.sv-f{color:var(--accent2)}.sv-3{color:var(--accent4)}.sv-quit{color:#ef4444}.sv-rest{color:#f59e0b}
 
-/* 리스트 테이블 */
 .list-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
 .list-table{width:100%;border-collapse:collapse}
 .list-table th{background:#f9fafb;padding:12px 10px;font-size:11px;font-weight:700;color:#6b7280;text-align:center;border-bottom:2px solid #e5e7eb;white-space:nowrap;position:sticky;top:0;z-index:2}
@@ -58,6 +57,8 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 .list-table tbody tr{cursor:pointer;transition:background .12s}
 .list-table tbody tr:hover{background:#eef2ff}
 .list-table tbody tr:active{background:#e0e7ff}
+.list-table tbody tr.locked{opacity:.4;cursor:not-allowed}
+.list-table tbody tr.locked:hover{background:#fff5f5}
 .list-table .col-no{width:40px;color:#d1d5db;font-size:10px;font-weight:600}
 .list-table .col-name{font-weight:700;color:var(--primary);font-size:13px;text-align:left;white-space:nowrap}
 .list-table .col-school{text-align:left;color:#6b7280;font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -69,12 +70,16 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 .class-badge.jung{background:#fef3c7;color:#b45309}
 .class-badge.both{background:#f0fdf4;color:var(--accent4)}
 .class-badge.sun{background:#fdf2f8;color:var(--accent2)}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.status-badge.st-수강{background:#f0fdf4;color:#16a34a}
+.status-badge.st-퇴원{background:#fef2f2;color:#dc2626}
+.status-badge.st-휴식{background:#fffbeb;color:#d97706}
 .arrow-icon{color:#d1d5db;font-size:14px}
 
 .empty{text-align:center;padding:60px 20px;color:#d1d5db;font-size:14px}
 
-@media(max-width:500px){
-  .stats-bar{grid-template-columns:repeat(2,1fr)}
+@media(max-width:600px){
+  .stats-bar{grid-template-columns:repeat(3,1fr)}
   .filter-bar{flex-direction:column}
   .search-input{min-width:100%}
   .wrap{padding:10px}
@@ -113,6 +118,7 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 <select class="filter-select" id="filterClass"><option value="">전체 수강반</option></select>
 <select class="filter-select" id="filterGender"><option value="">전체 성별</option><option value="남">남</option><option value="여">여</option></select>
 <select class="filter-select" id="filterGrade"><option value="">전체 학년</option></select>
+<select class="filter-select" id="filterStatus"><option value="">전체 상태</option><option value="수강">수강</option><option value="퇴원">퇴원</option><option value="휴식">휴식</option></select>
 </div>
 
 <div class="stats-bar" id="statsBar"></div>
@@ -134,11 +140,24 @@ function parseRow(l){
   for(var i=0;i<l.length;i++){var ch=l[i];if(q){if(ch==='"'&&l[i+1]==='"'){c+='"';i++;}else if(ch==='"')q=false;else c+=ch;}else{if(ch==='"')q=true;else if(ch===','){r.push(c.trim());c='';}else c+=ch;}}
   r.push(c.trim());return r;
 }
-function parseCSV(t){
+
+/* ★ 인적사항 전용 파서 (인덱스 기반) */
+function parseInfoCSV(t){
   var ls=t.split('\n').filter(function(l){return l.trim();});
-  if(ls.length<2)return[];
-  var h=parseRow(ls[0]);
-  return ls.slice(1).map(function(l){var c=parseRow(l);var o={};h.forEach(function(k,i){o[k]=c[i]||'';});return o;});
+  if(ls.length<2) return [];
+  return ls.slice(1).map(function(l){
+    var c=parseRow(l);
+    return {
+      'no':       c[0]||'',
+      '이름':     c[1]||'',
+      '성별':     c[2]||'',
+      '학년':     c[3]||'',
+      '학교':     c[4]||'',
+      '수강반':   c[5]||'',
+      '비밀번호': c[6]||'',
+      '상태':     c[7]||''
+    };
+  });
 }
 
 document.getElementById('masterLoginBtn').addEventListener('click',doLogin);
@@ -155,7 +174,8 @@ function doLogin(){
 
 function loadStudents(){
   fetch(INFO_URL).then(function(r){return r.text();}).then(function(t){
-    allStudents=parseCSV(t).filter(function(s){return s['이름']&&s['no'];});
+    /* ★ parseInfoCSV 사용 */
+    allStudents=parseInfoCSV(t).filter(function(s){return s['이름']&&s['no'];});
     buildFilters();
     renderAll();
   }).catch(function(){
@@ -180,22 +200,29 @@ function getFiltered(){
   var fc=document.getElementById('filterClass').value;
   var fg=document.getElementById('filterGender').value;
   var fgr=document.getElementById('filterGrade').value;
+  var fst=document.getElementById('filterStatus').value;
   return allStudents.filter(function(s){
     if(q&&s['이름'].toLowerCase().indexOf(q)===-1&&(s['학교']||'').toLowerCase().indexOf(q)===-1)return false;
     if(fc&&s['수강반']!==fc)return false;
     if(fg&&s['성별']!==fg)return false;
     if(fgr&&s['학년']!==fgr)return false;
+    if(fst&&(s['상태']||'수강')!==fst)return false;
     return true;
   });
 }
 
 function getClassBadge(cls){
   if(!cls)return'';
-  if(cls.indexOf('수시+정시')!==-1) return'<span class="class-badge both">수시+정시</span>';
-  if(cls.indexOf('수시')!==-1) return'<span class="class-badge susi">수시전문반</span>';
-  if(cls.indexOf('정시')!==-1) return'<span class="class-badge jung">정시전문반</span>';
-  if(cls.indexOf('선행')!==-1) return'<span class="class-badge sun">선행반</span>';
+  if(cls.indexOf('수시+정시')!==-1||cls.indexOf('수시&정시')!==-1) return'<span class="class-badge both">'+cls+'</span>';
+  if(cls.indexOf('수시')!==-1) return'<span class="class-badge susi">'+cls+'</span>';
+  if(cls.indexOf('정시')!==-1) return'<span class="class-badge jung">'+cls+'</span>';
+  if(cls.indexOf('선행')!==-1) return'<span class="class-badge sun">'+cls+'</span>';
   return'<span class="class-badge susi">'+cls+'</span>';
+}
+
+function getStatusBadge(st){
+  var status=(st||'수강').trim();
+  return '<span class="status-badge st-'+status+'">'+status+'</span>';
 }
 
 function renderAll(){
@@ -204,12 +231,15 @@ function renderAll(){
   var male=list.filter(function(s){return s['성별']==='남';}).length;
   var female=list.filter(function(s){return s['성별']==='여';}).length;
   var g3=list.filter(function(s){return s['학년']==='3학년';}).length;
+  var quit=list.filter(function(s){return (s['상태']||'').trim()==='퇴원';}).length;
+  var rest=list.filter(function(s){return (s['상태']||'').trim()==='휴식';}).length;
   document.getElementById('totalBadge').textContent=total+'명';
   document.getElementById('statsBar').innerHTML=
     '<div class="stat-card"><div class="sl">전체</div><div class="sv">'+total+'</div><div class="su">명</div></div>'+
     '<div class="stat-card"><div class="sl">남학생</div><div class="sv sv-m">'+male+'</div><div class="su">명</div></div>'+
     '<div class="stat-card"><div class="sl">여학생</div><div class="sv sv-f">'+female+'</div><div class="su">명</div></div>'+
-    '<div class="stat-card"><div class="sl">3학년</div><div class="sv sv-3">'+g3+'</div><div class="su">명</div></div>';
+    '<div class="stat-card"><div class="sl">퇴원</div><div class="sv sv-quit">'+quit+'</div><div class="su">명</div></div>'+
+    '<div class="stat-card"><div class="sl">휴식</div><div class="sv sv-rest">'+rest+'</div><div class="su">명</div></div>';
 
   if(!list.length){
     document.getElementById('gridArea').innerHTML='<div class="empty">검색 결과가 없습니다.</div>';
@@ -217,22 +247,29 @@ function renderAll(){
   }
 
   var h='<div class="list-card"><table class="list-table"><thead><tr>';
-  h+='<th>번호</th><th style="text-align:left">이름</th><th style="text-align:left">학교</th><th>학년</th><th>성별</th><th>수강반</th><th></th>';
+  h+='<th>번호</th><th style="text-align:left">이름</th><th style="text-align:left">학교</th><th>학년</th><th>성별</th><th>수강반</th><th>상태</th><th></th>';
   h+='</tr></thead><tbody>';
 
   list.forEach(function(s){
     var isMale=s['성별']==='남';
     var gDot=isMale?'<span class="gender-dot m"></span>남':'<span class="gender-dot f"></span>여';
     var school=(s['학교']||'').replace('고등학교','고');
+    var status=(s['상태']||'수강').trim();
+    var isLocked=(status==='퇴원'||status==='휴식');
 
-    h+='<tr onclick="openStudent(\''+s['no']+'\',\''+s['비밀번호'].replace(/'/g,"\\'")+'\')">';
+    if(isLocked){
+      h+='<tr class="locked" onclick="alert(\''+status+' 학생은 열람이 제한됩니다.\')">';
+    } else {
+      h+='<tr onclick="openStudent(\''+s['no']+'\',\''+s['비밀번호'].replace(/'/g,"\\'")+'\')">';
+    }
     h+='<td class="col-no">#'+s['no']+'</td>';
     h+='<td class="col-name">'+s['이름']+'</td>';
     h+='<td class="col-school">'+school+'</td>';
     h+='<td>'+s['학년']+'</td>';
     h+='<td>'+gDot+'</td>';
     h+='<td>'+getClassBadge(s['수강반'])+'</td>';
-    h+='<td><span class="arrow-icon">›</span></td>';
+    h+='<td>'+getStatusBadge(status)+'</td>';
+    h+='<td><span class="arrow-icon">'+(isLocked?'🔒':'›')+'</span></td>';
     h+='</tr>';
   });
 
@@ -244,6 +281,7 @@ document.getElementById('searchInput').addEventListener('input',renderAll);
 document.getElementById('filterClass').addEventListener('change',renderAll);
 document.getElementById('filterGender').addEventListener('change',renderAll);
 document.getElementById('filterGrade').addEventListener('change',renderAll);
+document.getElementById('filterStatus').addEventListener('change',renderAll);
 
 function openStudent(no,pw){
   window.open(BASE_URL+'?id='+no+'&pw='+encodeURIComponent(pw),'_blank');
