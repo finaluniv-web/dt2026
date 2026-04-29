@@ -82,7 +82,6 @@ body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;background:va
 .gpa-card .gc-val{font-size:28px;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .gpa-card .gc-sub{font-size:9px;color:#d1d5db;margin-top:3px}
 .chart-box{position:relative;height:220px;margin-top:8px}
-/* 지원현황 카드 */
 .univ-card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;transition:all .15s;border:1px solid #f0f0f4}
 .univ-card:active{transform:scale(.98)}
 .univ-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -227,6 +226,25 @@ function parseCSV(t){
   });
 }
 
+/* ★ 인적사항 전용 파서 (인덱스 기반, 첫 8컬럼만 사용) */
+function parseInfoCSV(t){
+  var ls=t.split('\n').filter(function(l){return l.trim();});
+  if(ls.length<2) return [];
+  return ls.slice(1).map(function(l){
+    var c=parseRow(l);
+    return {
+      'no':       c[0]||'',
+      '이름':     c[1]||'',
+      '성별':     c[2]||'',
+      '학년':     c[3]||'',
+      '학교':     c[4]||'',
+      '수강반':   c[5]||'',
+      '비밀번호': c[6]||'',
+      '상태':     c[7]||''
+    };
+  });
+}
+
 /* ── 날짜 ── */
 function fDate(d){
   if(!d||d.length<6)return d;
@@ -270,7 +288,8 @@ function initLogin(){
     return;
   }
   fetch(URLS.info).then(function(r){return r.text();}).then(function(text){
-    allInfoData=parseCSV(text);
+    /* ★ parseInfoCSV 사용 (인덱스 기반, 빈 헤더 문제 해결) */
+    allInfoData=parseInfoCSV(text);
     var me=findById(allInfoData,studentId);
     if(!me){
       document.getElementById('loginName').textContent='';
@@ -279,17 +298,29 @@ function initLogin(){
       document.getElementById('loginBtn').style.display='none';
       return;
     }
+
+    /* ★ 퇴원/휴식 학생 잠금 */
+    var status=(me['상태']||'').trim();
+    if(status==='퇴원'||status==='휴식'){
+      document.getElementById('loginName').textContent=me['이름'];
+      document.getElementById('loginErr').textContent=status==='퇴원'?'퇴원 처리된 학생입니다. 열람이 제한됩니다.':'휴식 중인 학생입니다. 열람이 제한됩니다.';
+      document.getElementById('pwInput').style.display='none';
+      document.getElementById('loginBtn').style.display='none';
+      return;
+    }
+
     document.getElementById('loginName').textContent=me['이름'];
     studentName=me['이름']; studentSchool=me['학교']||'';
     document.title=studentName+' - FINAL 기록지';
-    /* 마스터 자동 로그인 */
+
+    /* ★ 마스터 자동 로그인 (pw 파라미터) */
     var autoPw=new URLSearchParams(location.search).get('pw');
     if(autoPw && String(me['비밀번호']).trim()===autoPw.trim()){
       document.getElementById('loginScreen').style.display='none';
       document.getElementById('loading').style.display='flex';
       loadRecords(me);
     }
-     
+
   }).catch(function(){
     document.getElementById('loginName').textContent='';
     document.getElementById('loginErr').textContent='데이터를 불러올 수 없습니다. 새로고침 해주세요.';
@@ -326,7 +357,6 @@ function loadRecords(info){
     fetch(URLS.univInfo).then(function(r){return r.text();}).catch(function(){return '';})
   ]).then(function(results){
     var fT=results[0], mT=results[1], gT=results[2], aT=results[3], uiT=results[4];
-    /* 6.대학정보 파싱 */
     if(uiT) allUnivInfo=parseCSV(uiT); else allUnivInfo=[];
     var gpaData=parseCSV(gT);
     var gpa=gpaData.find(function(r){return r['이름']===studentName&&r['학교']===studentSchool;})||{};
@@ -335,7 +365,6 @@ function loadRecords(info){
     renderProfile(info,fc,mc);
     renderGPA(gpa);
     renderUnivList(aT);
-    /* 완료 */
     document.getElementById('loading').classList.add('hide');
     var app=document.getElementById('app');
     app.style.display='block';
@@ -387,7 +416,12 @@ function renderFitness(raw){
     {name:'제자리멀리뛰기',u:'cm',ri:13,si:14,color:'#f59e0b'},
     {name:'20m왕복',u:'초',ri:15,si:16,color:'#8b5cf6'}
   ];
-  var tI=rows[0].length-2;
+
+  /* ★ 헤더에서 총점 열 인덱스 찾기 (기존: rows[0].length-2 → 오류) */
+  var headerCols=parseRow(lines[0]);
+  var tI=headerCols.indexOf('총점');
+  if(tI<0) tI=17; /* 폴백: R열(col17) */
+
   var L=rows[rows.length-1], F=rows[0];
 
   /* 통계 */
@@ -564,7 +598,6 @@ function renderGPA(gpa){
    ══════════════════════════════════════════════ */
 function renderUnivList(applyRaw){
   var applyData=parseCSV(applyRaw);
-  /* 현재 학생의 지원 row 찾기 */
   var me=applyData.find(function(r){return r['이름']===studentName&&r['학교']===studentSchool;});
   if(!me){document.getElementById('univNone').style.display='';return;}
 
@@ -573,21 +606,15 @@ function renderUnivList(applyRaw){
     var univ=me['대학'+n];
     var dept=me['학과'+n];
     if(!univ)continue;
-    /* 5.지원현황의 구분 열: 반복 컬럼이므로 키 이름이 중복될 수 있음 */
     var gubun='', score='';
-    /* 구분/환산점수 키 찾기 (CSV에서 중복 키는 뒤에 _N 붙는 경우도 있지만,
-       parseCSV가 단순 매핑이므로 raw row로 직접 접근) */
-    var rawCols=parseRow(applyRaw.split('\n').filter(function(l){return l.trim();})[0]);
-    var myLine='';
     var allLines=applyRaw.split('\n').filter(function(l){return l.trim();});
+    var myLine='';
     for(var li=1;li<allLines.length;li++){
       var rc=parseRow(allLines[li]);
       if(rc[1]===studentName&&rc[4]===studentSchool){myLine=allLines[li];break;}
     }
     if(myLine){
       var mc=parseRow(myLine);
-      /* 대학1=col6, 학과1=col7, 구분=col8, 환산점수=col9
-         대학2=col10, 학과2=col11, 구분=col12, 환산점수=col13 ... */
       var baseCol=6+(n-1)*4;
       gubun=mc[baseCol+2]||'';
       score=mc[baseCol+3]||'';
@@ -600,7 +627,6 @@ function renderUnivList(applyRaw){
   var listEl=document.getElementById('univList');
   var h='';
   entries.forEach(function(e,idx){
-    /* 6.대학정보에서 매칭 */
     var info=allUnivInfo.find(function(u){
       return u['대학명']===e.univ && u['학과']===e.dept && u['구분']===e.gubun;
     }) || allUnivInfo.find(function(u){
@@ -614,7 +640,6 @@ function renderUnivList(applyRaw){
     h+='<div class="univ-dept">'+e.dept+'</div>';
     if(e.score) h+='<div class="univ-score">환산점수 <b>'+e.score+'</b></div>';
 
-    /* 6.대학정보 요약 표시 */
     if(info){
       h+='<div class="univ-info-summary">';
       if(info['모집인원']) h+='<div class="univ-info-item">모집인원 <b>'+info['모집인원']+'명</b></div>';
@@ -631,13 +656,11 @@ function renderUnivList(applyRaw){
     h+='</div>';
   });
   listEl.innerHTML=h;
-
-  /* 데이터를 전역에 저장 (상세에서 사용) */
   window._univEntries=entries;
 }
 
 /* ══════════════════════════════════════════════
-   지원현황 – 상세 보기 (iframe or 기록)
+   지원현황 – 상세 보기
    ══════════════════════════════════════════════ */
 function showUnivDetail(idx){
   var e=window._univEntries[idx];
@@ -658,11 +681,9 @@ function showUnivDetail(idx){
   var h='<button class="univ-back" onclick="hideUnivDetail()">← 목록으로</button>';
 
   if(url){
-    /* iframe 모드: 헤더 숨기고 iframe만 표시 */
     var iframeSrc=url+'?name='+encodeURIComponent(studentName)+'&school='+encodeURIComponent(studentSchool)+'&type='+encodeURIComponent(e.gubun);
     h+='<div class="univ-iframe-wrap"><iframe id="univIframe" src="'+iframeSrc+'" onload="adjustIframeHeight()"></iframe></div>';
   } else {
-    /* 헤더 + 정보 그리드 */
     h+='<div class="univ-detail-header">';
     h+='<div class="udh-name">'+e.univ+'</div>';
     h+='<div class="udh-dept">'+e.dept+'</div>';
@@ -688,7 +709,6 @@ function showUnivDetail(idx){
   window.scrollTo(0,0);
 }
 
-/* iframe 높이 자동 조절 */
 function adjustIframeHeight(){
   var iframe=document.getElementById('univIframe');
   if(!iframe)return;
@@ -696,10 +716,8 @@ function adjustIframeHeight(){
     var h=iframe.contentDocument.body.scrollHeight;
     if(h>100) iframe.style.height=h+'px';
   }catch(e){
-    /* cross-origin: fallback */
     iframe.style.height='2000px';
   }
-  /* 주기적 체크 (동적 콘텐츠 대응) */
   var cnt=0;
   var timer=setInterval(function(){
     cnt++;
@@ -711,7 +729,6 @@ function adjustIframeHeight(){
   },500);
 }
 
-/* postMessage 기반 높이 수신 */
 window.addEventListener('message',function(ev){
   if(ev.data&&ev.data.type==='resize'&&ev.data.height){
     var iframe=document.getElementById('univIframe');
@@ -735,7 +752,6 @@ document.querySelectorAll('.tab-btn').forEach(function(btn){
     btn.classList.add('on');
     var t=btn.getAttribute('data-t');
     document.getElementById('p-'+t).classList.add('on');
-    /* 지원현황 탭에서 돌아올 때 목록 표시 */
     if(t==='univ'){
       document.getElementById('univListView').style.display='';
       document.getElementById('univDetail').className='univ-detail';
