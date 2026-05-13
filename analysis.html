@@ -180,17 +180,18 @@ var SID='1JT-y2ZF6GLQD4ZYzP8yxFp6flxxc_F_vCMXGdY-gogs';
 var INFO_URL='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent('1.인적사항');
 var FITNESS_URL='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent('2.실기테스트');
 
+/* ★ 안전한 영문 key 사용 */
 var EVENTS=[
-  {label:'배근력',        recIdx:5,  scrIdx:6,  higherBetter:true},
-  {label:'10m왕복달리기',  recIdx:7,  scrIdx:8,  higherBetter:false},
-  {label:'메디신볼던지기',  recIdx:9,  scrIdx:10, higherBetter:true},
-  {label:'좌전굴',        recIdx:11, scrIdx:12, higherBetter:true},
-  {label:'제자리멀리뛰기',  recIdx:13, scrIdx:14, higherBetter:true},
-  {label:'20m왕복달리기',  recIdx:15, scrIdx:16, higherBetter:false}
+  {key:'ev0',label:'배근력',        recIdx:5,  scrIdx:6,  higherBetter:true},
+  {key:'ev1',label:'10m왕복달리기',  recIdx:7,  scrIdx:8,  higherBetter:false},
+  {key:'ev2',label:'메디신볼던지기',  recIdx:9,  scrIdx:10, higherBetter:true},
+  {key:'ev3',label:'좌전굴',        recIdx:11, scrIdx:12, higherBetter:true},
+  {key:'ev4',label:'제자리멀리뛰기',  recIdx:13, scrIdx:14, higherBetter:true},
+  {key:'ev5',label:'20m왕복달리기',  recIdx:15, scrIdx:16, higherBetter:false}
 ];
 var TOTAL_IDX=17, AVG_IDX=18;
 var allFitness=[];
-var classMap={};  /* ★ 이름|학교 → 수강반 매핑 */
+var classMap={};
 
 function parseRow(l){
   if(!l)return[];var r=[],c='',q=false;
@@ -203,7 +204,7 @@ function parseInfoCSV(t){
   if(ls.length<2)return[];
   return ls.slice(1).map(function(l){
     var c=parseRow(l);
-    return {'no':c[0]||'','이름':c[1]||'','성별':c[2]||'','학년':c[3]||'','학교':c[4]||'','수강반':c[5]||'','비밀번호':c[6]||'','상태':c[7]||''};
+    return {no:c[0]||'',name:c[1]||'',gender:c[2]||'',grade:c[3]||'',school:c[4]||'',cls:c[5]||'',pw:c[6]||'',status:c[7]||''};
   });
 }
 function parseFitnessCSV(t){
@@ -212,19 +213,15 @@ function parseFitnessCSV(t){
   if(ls.length<2)return[];
   return ls.slice(1).map(function(l){return parseRow(l);});
 }
-function pf(v){var n=parseFloat(v);return isNaN(n)?0:n;}
+function pf(v){if(v===undefined||v===null||v==='')return 0;var n=parseFloat(v);return isNaN(n)?0:n;}
 
-/* ★ 수강반 조회 헬퍼 */
-function getClass(r){
-  var key=r[1]+'|'+r[3]; /* 이름|학교 */
-  return classMap[key]||'';
-}
+function getClass(r){return classMap[r[1]+'|'+r[3]]||'';}
 function getClassBadge(cls){
   if(!cls)return'<span style="color:#d1d5db;font-size:9px">—</span>';
-  if(cls.indexOf('수시+정시')!==-1||cls.indexOf('수시&정시')!==-1) return'<span class="class-badge both">'+cls+'</span>';
-  if(cls.indexOf('수시')!==-1) return'<span class="class-badge susi">'+cls+'</span>';
-  if(cls.indexOf('정시')!==-1) return'<span class="class-badge jung">'+cls+'</span>';
-  if(cls.indexOf('선행')!==-1) return'<span class="class-badge sun">'+cls+'</span>';
+  if(cls.indexOf('수시+정시')!==-1||cls.indexOf('수시&정시')!==-1)return'<span class="class-badge both">'+cls+'</span>';
+  if(cls.indexOf('수시')!==-1)return'<span class="class-badge susi">'+cls+'</span>';
+  if(cls.indexOf('정시')!==-1)return'<span class="class-badge jung">'+cls+'</span>';
+  if(cls.indexOf('선행')!==-1)return'<span class="class-badge sun">'+cls+'</span>';
   return'<span class="class-badge susi">'+cls+'</span>';
 }
 
@@ -244,13 +241,10 @@ function loadData(){
     fetch(INFO_URL).then(function(r){return r.text();}),
     fetch(FITNESS_URL).then(function(r){return r.text();})
   ]).then(function(arr){
-    /* ★ 인적사항에서 수강반 매핑 생성 */
     var info=parseInfoCSV(arr[0]);
     classMap={};
     info.forEach(function(s){
-      if(s['이름']&&s['학교']){
-        classMap[s['이름']+'|'+s['학교']]=s['수강반']||'';
-      }
+      if(s.name&&s.school) classMap[s.name+'|'+s.school]=s.cls||'';
     });
     allFitness=parseFitnessCSV(arr[1]).filter(function(r){return r[1];});
     buildFilters();
@@ -267,13 +261,13 @@ function buildFilters(){
   allFitness.forEach(function(r){
     if(r[0])dates[r[0]]=1;
     if(r[4])grades[r[4]]=1;
-    var cls=getClass(r);
-    if(cls)classes[cls]=1;
+    var cls=getClass(r);if(cls)classes[cls]=1;
   });
   var ds=document.getElementById('filterDate');
   Object.keys(dates).sort().reverse().forEach(function(d){
     var o=document.createElement('option');o.value=d;
-    o.textContent=d.length>=6?('20'+d.substring(0,2)+'.'+d.substring(2,4)+'.'+d.substring(4,6)):d;
+    var p=d.replace(/\./g,'');
+    o.textContent=p.length>=6?('20'+p.substring(0,2)+'.'+p.substring(2,4)+'.'+p.substring(4,6)):d;
     ds.appendChild(o);
   });
   var gs=document.getElementById('filterGrade');
@@ -282,7 +276,6 @@ function buildFilters(){
     o.textContent=g.indexOf('학년')!==-1?g:g+'학년';
     gs.appendChild(o);
   });
-  /* ★ 수강반 필터 */
   var cs=document.getElementById('filterClass');
   Object.keys(classes).sort().forEach(function(c){
     var o=document.createElement('option');o.value=c;o.textContent=c;cs.appendChild(o);
@@ -298,11 +291,11 @@ function getFilteredRows(){
   var dt=document.getElementById('filterDataType').value;
 
   var rows=allFitness.filter(function(r){
-    if(fd && r[0]!==fd) return false;
-    if(fg && r[2]!==fg) return false;
-    if(fgr && r[4]!==fgr) return false;
-    if(fc && getClass(r)!==fc) return false;
-    if(q && r[1].toLowerCase().indexOf(q)===-1 && (r[3]||'').toLowerCase().indexOf(q)===-1) return false;
+    if(fd&&r[0]!==fd)return false;
+    if(fg&&r[2]!==fg)return false;
+    if(fgr&&r[4]!==fgr)return false;
+    if(fc&&getClass(r)!==fc)return false;
+    if(q&&r[1].toLowerCase().indexOf(q)===-1&&(r[3]||'').toLowerCase().indexOf(q)===-1)return false;
     return true;
   });
 
@@ -310,13 +303,14 @@ function getFilteredRows(){
     var map={};
     rows.forEach(function(r){
       var key=r[1]+'|'+r[2]+'|'+r[3];
-      if(!map[key]||r[0]>map[key][0]) map[key]=r;
+      if(!map[key]||r[0]>map[key][0])map[key]=r;
     });
     rows=Object.values(map);
   }
   return rows;
 }
 
+/* ═══ 탭 전환 ═══ */
 var currentTab='average';
 document.getElementById('tabBar').addEventListener('click',function(e){
   var btn=e.target.closest('.tab-btn');
@@ -329,13 +323,11 @@ document.getElementById('tabBar').addEventListener('click',function(e){
   document.getElementById('panelRanking').style.display=currentTab==='ranking'?'':'none';
   renderCurrentTab();
 });
-
 function renderCurrentTab(){
-  if(currentTab==='average') renderAverage();
-  else if(currentTab==='custom') renderCustom();
-  else if(currentTab==='ranking') renderRanking();
+  if(currentTab==='average')renderAverage();
+  else if(currentTab==='custom')renderCustom();
+  else if(currentTab==='ranking')renderRanking();
 }
-
 ['filterDate','filterGender','filterGrade','filterClass','filterDataType'].forEach(function(id){
   document.getElementById(id).addEventListener('change',renderCurrentTab);
 });
@@ -351,15 +343,14 @@ function renderAverage(){
     document.getElementById('avgTable').innerHTML='<div class="empty">해당 조건의 데이터가 없습니다.</div>';
     return;
   }
-
   var sums={},counts={};
-  EVENTS.forEach(function(ev){sums[ev.label+'R']=0;sums[ev.label+'S']=0;counts[ev.label]=0;});
+  EVENTS.forEach(function(ev){sums[ev.key+'R']=0;sums[ev.key+'S']=0;counts[ev.key]=0;});
   sums['tot']=0;sums['avg']=0;counts['tot']=0;
 
   rows.forEach(function(r){
     EVENTS.forEach(function(ev){
       var s=pf(r[ev.scrIdx]),rc=pf(r[ev.recIdx]);
-      if(s>0||rc>0){sums[ev.label+'R']+=rc;sums[ev.label+'S']+=s;counts[ev.label]++;}
+      if(s>0||rc>0){sums[ev.key+'R']+=rc;sums[ev.key+'S']+=s;counts[ev.key]++;}
     });
     var t=pf(r[TOTAL_IDX]);
     if(t>0){sums['tot']+=t;sums['avg']+=pf(r[AVG_IDX]);counts['tot']++;}
@@ -368,24 +359,21 @@ function renderAverage(){
   var sh='<div class="stat-card"><div class="sl">인원수</div><div class="sv sv-accent">'+rows.length+'</div><div class="su">명</div></div>';
   sh+='<div class="stat-card"><div class="sl">총점 평균</div><div class="sv sv-green">'+(counts['tot']?(sums['tot']/counts['tot']).toFixed(1):'—')+'</div><div class="su">점</div></div>';
   EVENTS.forEach(function(ev){
-    var c=counts[ev.label];
-    sh+='<div class="stat-card"><div class="sl">'+ev.label+'</div><div class="sv sv-teal">'+(c?(sums[ev.label+'S']/c).toFixed(1):'—')+'</div><div class="su">점(평균)</div></div>';
+    var c=counts[ev.key];
+    sh+='<div class="stat-card"><div class="sl">'+ev.label+'</div><div class="sv sv-teal">'+(c?(sums[ev.key+'S']/c).toFixed(1):'—')+'</div><div class="su">점(평균)</div></div>';
   });
   document.getElementById('avgStats').innerHTML=sh;
 
   rows.sort(function(a,b){
     var va,vb;
-    if(sortKey==='name'){return sortDir==='asc'?a[1].localeCompare(b[1]):b[1].localeCompare(a[1]);}
+    if(sortKey==='name')return sortDir==='asc'?a[1].localeCompare(b[1]):b[1].localeCompare(a[1]);
     if(sortKey==='total'){va=pf(a[TOTAL_IDX]);vb=pf(b[TOTAL_IDX]);}
-    else{
-      var ev=EVENTS.find(function(e){return e.label===sortKey;});
-      if(ev){va=pf(a[ev.scrIdx]);vb=pf(b[ev.scrIdx]);}else{va=0;vb=0;}
-    }
+    else{var ev=EVENTS.find(function(e){return e.key===sortKey;});if(ev){va=pf(a[ev.scrIdx]);vb=pf(b[ev.scrIdx]);}else{va=0;vb=0;}}
     return sortDir==='asc'?va-vb:vb-va;
   });
 
   var avgMap={};
-  EVENTS.forEach(function(ev){avgMap[ev.label]=counts[ev.label]?(sums[ev.label+'S']/counts[ev.label]):0;});
+  EVENTS.forEach(function(ev){avgMap[ev.key]=counts[ev.key]?(sums[ev.key+'S']/counts[ev.key]):0;});
   avgMap['tot']=counts['tot']?(sums['tot']/counts['tot']):0;
 
   function si(k){return sortKey===k?'<span class="sort-ind">'+(sortDir==='desc'?'▼':'▲')+'</span>':'';}
@@ -394,40 +382,32 @@ function renderAverage(){
   h+='<th>#</th><th data-sk="name" style="text-align:left">이름'+si('name')+'</th><th>성별</th><th style="text-align:left">학교</th><th>수강반</th><th>학년</th><th>날짜</th>';
   EVENTS.forEach(function(ev){
     var short=ev.label.replace('왕복달리기','왕복').replace('던지기','').replace('멀리뛰기','멀뛰');
-    h+='<th data-sk="'+ev.label+'">'+short+si(ev.label)+'</th>';
+    h+='<th data-sk="'+ev.key+'">'+short+si(ev.key)+'</th>';
   });
-  h+='<th data-sk="total">총점'+si('total')+'</th><th>평균</th>';
-  h+='</tr></thead><tbody>';
+  h+='<th data-sk="total">총점'+si('total')+'</th><th>평균</th></tr></thead><tbody>';
 
   rows.forEach(function(r,i){
     var gd=r[2]==='남'?'<span class="gender-dot m"></span>남':'<span class="gender-dot f"></span>여';
     var sc=(r[3]||'').replace('고등학교','고');
     var cls=getClass(r);
-    var dt=r[0]?(r[0].substring(0,2)+'.'+r[0].substring(2,4)+'.'+r[0].substring(4,6)):'';
-    h+='<tr>';
-    h+='<td style="color:#d1d5db;font-size:10px">'+(i+1)+'</td>';
-    h+='<td class="col-name">'+r[1]+'</td>';
-    h+='<td>'+gd+'</td>';
-    h+='<td class="col-school">'+sc+'</td>';
-    h+='<td class="col-class">'+getClassBadge(cls)+'</td>';
-    h+='<td>'+r[4]+'</td>';
-    h+='<td style="font-size:10px;color:#9ca3af">'+dt+'</td>';
+    var dt=r[0]||'';
+    h+='<tr><td style="color:#d1d5db;font-size:10px">'+(i+1)+'</td>';
+    h+='<td class="col-name">'+r[1]+'</td><td>'+gd+'</td>';
+    h+='<td class="col-school">'+sc+'</td><td class="col-class">'+getClassBadge(cls)+'</td>';
+    h+='<td>'+r[4]+'</td><td style="font-size:10px;color:#9ca3af">'+dt+'</td>';
     EVENTS.forEach(function(ev){
       var s=pf(r[ev.scrIdx]);
-      var c=s>avgMap[ev.label]?'above':(s<avgMap[ev.label]?'below':'');
+      var c=s>avgMap[ev.key]?'above':(s<avgMap[ev.key]?'below':'');
       h+='<td class="'+c+'">'+s+'</td>';
     });
     var t=pf(r[TOTAL_IDX]);
     var tc=t>avgMap['tot']?'above':(t<avgMap['tot']?'below':'');
     h+='<td class="'+tc+'" style="font-weight:800">'+t+'</td>';
-    h+='<td>'+pf(r[AVG_IDX]).toFixed(1)+'</td>';
-    h+='</tr>';
+    h+='<td>'+pf(r[AVG_IDX]).toFixed(1)+'</td></tr>';
   });
 
   h+='<tr class="avg-row"><td></td><td colspan="6" style="text-align:left;padding-left:10px">전체 평균</td>';
-  EVENTS.forEach(function(ev){
-    var c=counts[ev.label];h+='<td>'+(c?(sums[ev.label+'S']/c).toFixed(1):'—')+'</td>';
-  });
+  EVENTS.forEach(function(ev){var c=counts[ev.key];h+='<td>'+(c?(sums[ev.key+'S']/c).toFixed(1):'—')+'</td>';});
   h+='<td>'+(counts['tot']?(sums['tot']/counts['tot']).toFixed(1):'—')+'</td>';
   h+='<td>'+(counts['tot']?(sums['avg']/counts['tot']).toFixed(1):'—')+'</td>';
   h+='</tr></tbody></table></div>';
@@ -436,7 +416,7 @@ function renderAverage(){
   document.querySelectorAll('#avgTable th[data-sk]').forEach(function(th){
     th.addEventListener('click',function(){
       var k=this.dataset.sk;
-      if(sortKey===k) sortDir=sortDir==='desc'?'asc':'desc';
+      if(sortKey===k)sortDir=sortDir==='desc'?'asc':'desc';
       else{sortKey=k;sortDir='desc';}
       renderAverage();
     });
@@ -449,16 +429,16 @@ function buildSettingPanel(){
   var h='';
   EVENTS.forEach(function(ev){
     h+='<div class="setting-item"><label>'+ev.label+' (점수)</label>';
-    h+='<div class="range-row"><input type="number" id="min_'+ev.label+'" placeholder="최소" min="0" max="100"><span class="range-sep">~</span><input type="number" id="max_'+ev.label+'" placeholder="최대" min="0" max="100"></div></div>';
+    h+='<div class="range-row"><input type="number" id="cmin_'+ev.key+'" placeholder="최소" min="0" max="100"><span class="range-sep">~</span><input type="number" id="cmax_'+ev.key+'" placeholder="최대" min="0" max="100"></div></div>';
   });
   h+='<div class="setting-item"><label>총점</label>';
-  h+='<div class="range-row"><input type="number" id="min_총점" placeholder="최소" min="0" max="600"><span class="range-sep">~</span><input type="number" id="max_총점" placeholder="최대" min="0" max="600"></div></div>';
+  h+='<div class="range-row"><input type="number" id="cmin_total" placeholder="최소" min="0" max="600"><span class="range-sep">~</span><input type="number" id="cmax_total" placeholder="최대" min="0" max="600"></div></div>';
   h+='<div class="setting-item"><label>평균</label>';
-  h+='<div class="range-row"><input type="number" id="min_평균" placeholder="최소" min="0" max="100" step="0.1"><span class="range-sep">~</span><input type="number" id="max_평균" placeholder="최대" min="0" max="100" step="0.1"></div></div>';
+  h+='<div class="range-row"><input type="number" id="cmin_avg" placeholder="최소" min="0" max="100" step="0.1"><span class="range-sep">~</span><input type="number" id="cmax_avg" placeholder="최대" min="0" max="100" step="0.1"></div></div>';
   g.innerHTML=h;
 }
 
-document.getElementById('applyCustom').addEventListener('click',renderCustom);
+document.getElementById('applyCustom').addEventListener('click',function(){renderCustom();});
 document.getElementById('resetCustom').addEventListener('click',function(){
   document.querySelectorAll('#settingGrid input[type="number"]').forEach(function(inp){inp.value='';});
   renderCustom();
@@ -466,23 +446,45 @@ document.getElementById('resetCustom').addEventListener('click',function(){
 
 function renderCustom(){
   var rows=getFilteredRows();
+
+  /* ★ 조건 수집 – 안전한 ID 사용 */
   var conds=[];
   EVENTS.forEach(function(ev){
-    var mn=document.getElementById('min_'+ev.label).value;
-    var mx=document.getElementById('max_'+ev.label).value;
-    if(mn!==''||mx!=='') conds.push({idx:ev.scrIdx,min:mn!==''?parseFloat(mn):-Infinity,max:mx!==''?parseFloat(mx):Infinity,label:ev.label});
+    var mnEl=document.getElementById('cmin_'+ev.key);
+    var mxEl=document.getElementById('cmax_'+ev.key);
+    if(!mnEl||!mxEl)return;
+    var mn=mnEl.value, mx=mxEl.value;
+    if(mn!==''||mx!==''){
+      conds.push({idx:ev.scrIdx, min:mn!==''?parseFloat(mn):-Infinity, max:mx!==''?parseFloat(mx):Infinity, label:ev.label});
+    }
   });
-  ['총점','평균'].forEach(function(lbl){
-    var idx=lbl==='총점'?TOTAL_IDX:AVG_IDX;
-    var mn=document.getElementById('min_'+lbl).value;
-    var mx=document.getElementById('max_'+lbl).value;
-    if(mn!==''||mx!=='') conds.push({idx:idx,min:mn!==''?parseFloat(mn):-Infinity,max:mx!==''?parseFloat(mx):Infinity,label:lbl});
-  });
+  /* 총점 */
+  var tmnEl=document.getElementById('cmin_total'), tmxEl=document.getElementById('cmax_total');
+  if(tmnEl&&tmxEl){
+    var tmn=tmnEl.value, tmx=tmxEl.value;
+    if(tmn!==''||tmx!==''){
+      conds.push({idx:TOTAL_IDX, min:tmn!==''?parseFloat(tmn):-Infinity, max:tmx!==''?parseFloat(tmx):Infinity, label:'총점'});
+    }
+  }
+  /* 평균 */
+  var amnEl=document.getElementById('cmin_avg'), amxEl=document.getElementById('cmax_avg');
+  if(amnEl&&amxEl){
+    var amn=amnEl.value, amx=amxEl.value;
+    if(amn!==''||amx!==''){
+      conds.push({idx:AVG_IDX, min:amn!==''?parseFloat(amn):-Infinity, max:amx!==''?parseFloat(amx):Infinity, label:'평균'});
+    }
+  }
+
+  /* ★ 필터링 — 총점이 0인 학생 제외 */
   if(conds.length>0){
     rows=rows.filter(function(r){
+      if(pf(r[TOTAL_IDX])===0)return false;
       return conds.every(function(c){var v=pf(r[c.idx]);return v>=c.min&&v<=c.max;});
     });
+  }else{
+    rows=rows.filter(function(r){return pf(r[TOTAL_IDX])>0;});
   }
+
   document.getElementById('customCount').textContent='조건 '+conds.length+'개 → '+rows.length+'명';
 
   if(!rows.length){
@@ -506,15 +508,11 @@ function renderCustom(){
     var gd=r[2]==='남'?'<span class="gender-dot m"></span>남':'<span class="gender-dot f"></span>여';
     var sc=(r[3]||'').replace('고등학교','고');
     var cls=getClass(r);
-    var dt=r[0]?(r[0].substring(0,2)+'.'+r[0].substring(2,4)+'.'+r[0].substring(4,6)):'';
-    h+='<tr>';
-    h+='<td style="color:#d1d5db;font-size:10px">'+(i+1)+'</td>';
-    h+='<td class="col-name">'+r[1]+'</td>';
-    h+='<td>'+gd+'</td>';
-    h+='<td class="col-school">'+sc+'</td>';
-    h+='<td class="col-class">'+getClassBadge(cls)+'</td>';
-    h+='<td>'+r[4]+'</td>';
-    h+='<td style="font-size:10px;color:#9ca3af">'+dt+'</td>';
+    var dt=r[0]||'';
+    h+='<tr><td style="color:#d1d5db;font-size:10px">'+(i+1)+'</td>';
+    h+='<td class="col-name">'+r[1]+'</td><td>'+gd+'</td>';
+    h+='<td class="col-school">'+sc+'</td><td class="col-class">'+getClassBadge(cls)+'</td>';
+    h+='<td>'+r[4]+'</td><td style="font-size:10px;color:#9ca3af">'+dt+'</td>';
     EVENTS.forEach(function(ev){
       var hl=condSet[ev.scrIdx]?' class="highlight"':'';
       h+='<td'+hl+'>'+(r[ev.recIdx]||'-')+' / <b>'+pf(r[ev.scrIdx])+'</b></td>';
@@ -522,8 +520,7 @@ function renderCustom(){
     var thl=condSet[TOTAL_IDX]?' class="highlight"':'';
     h+='<td'+thl+' style="font-weight:800">'+pf(r[TOTAL_IDX])+'</td>';
     var ahl=condSet[AVG_IDX]?' class="highlight"':'';
-    h+='<td'+ahl+'>'+pf(r[AVG_IDX]).toFixed(1)+'</td>';
-    h+='</tr>';
+    h+='<td'+ahl+'>'+pf(r[AVG_IDX]).toFixed(1)+'</td></tr>';
   });
   h+='</tbody></table></div>';
   document.getElementById('customTable').innerHTML=h;
@@ -533,7 +530,7 @@ function renderCustom(){
 function buildRankSelect(){
   var sel=document.getElementById('rankEvent');
   EVENTS.forEach(function(ev){
-    var o=document.createElement('option');o.value=ev.label;o.textContent=ev.label;sel.appendChild(o);
+    var o=document.createElement('option');o.value=ev.key;o.textContent=ev.label;sel.appendChild(o);
   });
   ['총점','평균'].forEach(function(lbl){
     var o=document.createElement('option');o.value=lbl;o.textContent=lbl;sel.appendChild(o);
@@ -543,18 +540,18 @@ document.getElementById('rankEvent').addEventListener('change',renderRanking);
 document.getElementById('rankType').addEventListener('change',renderRanking);
 
 function renderRanking(){
-  var evName=document.getElementById('rankEvent').value;
+  var evKey=document.getElementById('rankEvent').value;
   var rType=document.getElementById('rankType').value;
-  if(!evName){document.getElementById('rankTable').innerHTML='<div class="empty">종목을 선택하세요.</div>';return;}
+  if(!evKey){document.getElementById('rankTable').innerHTML='<div class="empty">종목을 선택하세요.</div>';return;}
 
   var rows=getFilteredRows();
   if(!rows.length){document.getElementById('rankTable').innerHTML='<div class="empty">해당 조건의 데이터가 없습니다.</div>';return;}
 
-  var ev=EVENTS.find(function(e){return e.label===evName;});
-  var sIdx,isRec;
-  if(ev){sIdx=rType==='record'?ev.recIdx:ev.scrIdx;isRec=rType==='record';}
-  else if(evName==='총점'){sIdx=TOTAL_IDX;isRec=false;}
-  else{sIdx=AVG_IDX;isRec=false;}
+  var ev=EVENTS.find(function(e){return e.key===evKey;});
+  var sIdx,isRec,evLabel;
+  if(ev){sIdx=rType==='record'?ev.recIdx:ev.scrIdx;isRec=rType==='record';evLabel=ev.label;}
+  else if(evKey==='총점'){sIdx=TOTAL_IDX;isRec=false;evLabel='총점';}
+  else{sIdx=AVG_IDX;isRec=false;evLabel='평균';}
 
   rows=rows.filter(function(r){return pf(r[sIdx])>0;});
 
@@ -562,38 +559,33 @@ function renderRanking(){
   if(isRec){rows.sort(function(a,b){return hb?(pf(b[sIdx])-pf(a[sIdx])):(pf(a[sIdx])-pf(b[sIdx]));});}
   else{rows.sort(function(a,b){return pf(b[sIdx])-pf(a[sIdx]);});}
 
-  var h='<div class="count-info">'+evName+(isRec?' (기록 기준)':' (점수 기준)')+' · '+rows.length+'명</div>';
+  var h='<div class="count-info">'+evLabel+(isRec?' (기록 기준)':' (점수 기준)')+' · '+rows.length+'명</div>';
   h+='<div class="list-card"><table class="list-table"><thead><tr>';
   h+='<th>순위</th><th style="text-align:left">이름</th><th>성별</th><th style="text-align:left">학교</th><th>수강반</th><th>학년</th><th>날짜</th>';
-  if(ev) h+='<th>기록</th><th>점수</th>';
-  else h+='<th>'+evName+'</th>';
+  if(ev)h+='<th>기록</th><th>점수</th>';
+  else h+='<th>'+evLabel+'</th>';
   h+='<th>총점</th></tr></thead><tbody>';
 
   rows.forEach(function(r,i){
     var gd=r[2]==='남'?'<span class="gender-dot m"></span>남':'<span class="gender-dot f"></span>여';
     var sc=(r[3]||'').replace('고등학교','고');
     var cls=getClass(r);
-    var dt=r[0]?(r[0].substring(0,2)+'.'+r[0].substring(2,4)+'.'+r[0].substring(4,6)):'';
+    var dt=r[0]||'';
     var medal=i===0?'🥇 ':i===1?'🥈 ':i===2?'🥉 ':'';
     var rCls=i<3?'style="font-weight:800;color:var(--accent)"':'style="color:#d1d5db;font-size:10px"';
     h+='<tr'+(i<3?' class="highlight"':'')+'>';
     h+='<td '+rCls+'>'+medal+(i+1)+'</td>';
-    h+='<td class="col-name">'+r[1]+'</td>';
-    h+='<td>'+gd+'</td>';
-    h+='<td class="col-school">'+sc+'</td>';
-    h+='<td class="col-class">'+getClassBadge(cls)+'</td>';
-    h+='<td>'+r[4]+'</td>';
-    h+='<td style="font-size:10px;color:#9ca3af">'+dt+'</td>';
+    h+='<td class="col-name">'+r[1]+'</td><td>'+gd+'</td>';
+    h+='<td class="col-school">'+sc+'</td><td class="col-class">'+getClassBadge(cls)+'</td>';
+    h+='<td>'+r[4]+'</td><td style="font-size:10px;color:#9ca3af">'+dt+'</td>';
     if(ev){
       h+='<td style="font-weight:700">'+r[ev.recIdx]+'</td>';
       h+='<td style="font-weight:700;color:var(--accent)">'+pf(r[ev.scrIdx])+'</td>';
-    } else {
-      h+='<td style="font-weight:800;color:var(--accent)">'+pf(r[sIdx]).toFixed(evName==='평균'?1:0)+'</td>';
+    }else{
+      h+='<td style="font-weight:800;color:var(--accent)">'+pf(r[sIdx]).toFixed(evLabel==='평균'?1:0)+'</td>';
     }
-    h+='<td>'+pf(r[TOTAL_IDX])+'</td>';
-    h+='</tr>';
+    h+='<td>'+pf(r[TOTAL_IDX])+'</td></tr>';
   });
-
   h+='</tbody></table></div>';
   document.getElementById('rankTable').innerHTML=h;
 }
