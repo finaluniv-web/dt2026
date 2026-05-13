@@ -56,9 +56,10 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 
 .setting-panel{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
 .setting-title{font-size:14px;font-weight:800;margin-bottom:14px}
-.setting-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.setting-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 .setting-item{display:flex;flex-direction:column;gap:4px}
 .setting-item label{font-size:11px;font-weight:700;color:#6b7280}
+.setting-item .unit{font-size:9px;color:#d1d5db;font-weight:500}
 .setting-item .range-row{display:flex;gap:6px;align-items:center}
 .setting-item input[type="number"]{width:80px;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit;font-weight:700;outline:none;text-align:center}
 .setting-item input[type="number"]:focus{border-color:var(--accent)}
@@ -153,7 +154,7 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 
 <div id="panelCustom" style="display:none">
 <div class="setting-panel" id="settingPanel">
-<div class="setting-title">⚙️ 커스텀 조건 설정 (점수 범위)</div>
+<div class="setting-title">⚙️ 커스텀 조건 설정 (기록 범위)</div>
 <div class="setting-grid" id="settingGrid"></div>
 <div class="btn-row">
 <button class="apply-btn" id="applyCustom">조건 적용</button>
@@ -180,14 +181,13 @@ var SID='1JT-y2ZF6GLQD4ZYzP8yxFp6flxxc_F_vCMXGdY-gogs';
 var INFO_URL='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent('1.인적사항');
 var FITNESS_URL='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent('2.실기테스트');
 
-/* ★ 안전한 영문 key 사용 */
 var EVENTS=[
-  {key:'ev0',label:'배근력',        recIdx:5,  scrIdx:6,  higherBetter:true},
-  {key:'ev1',label:'10m왕복달리기',  recIdx:7,  scrIdx:8,  higherBetter:false},
-  {key:'ev2',label:'메디신볼던지기',  recIdx:9,  scrIdx:10, higherBetter:true},
-  {key:'ev3',label:'좌전굴',        recIdx:11, scrIdx:12, higherBetter:true},
-  {key:'ev4',label:'제자리멀리뛰기',  recIdx:13, scrIdx:14, higherBetter:true},
-  {key:'ev5',label:'20m왕복달리기',  recIdx:15, scrIdx:16, higherBetter:false}
+  {key:'ev0',label:'배근력',        unit:'kg',  recIdx:5,  scrIdx:6,  higherBetter:true},
+  {key:'ev1',label:'10m왕복달리기',  unit:'초',  recIdx:7,  scrIdx:8,  higherBetter:false},
+  {key:'ev2',label:'메디신볼던지기',  unit:'m',   recIdx:9,  scrIdx:10, higherBetter:true},
+  {key:'ev3',label:'좌전굴',        unit:'cm',  recIdx:11, scrIdx:12, higherBetter:true},
+  {key:'ev4',label:'제자리멀리뛰기',  unit:'cm',  recIdx:13, scrIdx:14, higherBetter:true},
+  {key:'ev5',label:'20m왕복달리기',  unit:'초',  recIdx:15, scrIdx:16, higherBetter:false}
 ];
 var TOTAL_IDX=17, AVG_IDX=18;
 var allFitness=[];
@@ -199,7 +199,7 @@ function parseRow(l){
   r.push(c.trim());return r;
 }
 function parseInfoCSV(t){
-  if(t.charCodeAt(0)===0xFEFF) t=t.substring(1);
+  if(t.charCodeAt(0)===0xFEFF)t=t.substring(1);
   var ls=t.split(/\r?\n/).filter(function(l){return l.trim();});
   if(ls.length<2)return[];
   return ls.slice(1).map(function(l){
@@ -208,7 +208,7 @@ function parseInfoCSV(t){
   });
 }
 function parseFitnessCSV(t){
-  if(t.charCodeAt(0)===0xFEFF) t=t.substring(1);
+  if(t.charCodeAt(0)===0xFEFF)t=t.substring(1);
   var ls=t.split(/\r?\n/).filter(function(l){return l.trim();});
   if(ls.length<2)return[];
   return ls.slice(1).map(function(l){return parseRow(l);});
@@ -244,7 +244,7 @@ function loadData(){
     var info=parseInfoCSV(arr[0]);
     classMap={};
     info.forEach(function(s){
-      if(s.name&&s.school) classMap[s.name+'|'+s.school]=s.cls||'';
+      if(s.name&&s.school)classMap[s.name+'|'+s.school]=s.cls||'';
     });
     allFitness=parseFitnessCSV(arr[1]).filter(function(r){return r[1];});
     buildFilters();
@@ -298,7 +298,6 @@ function getFilteredRows(){
     if(q&&r[1].toLowerCase().indexOf(q)===-1&&(r[3]||'').toLowerCase().indexOf(q)===-1)return false;
     return true;
   });
-
   if(dt==='latest'){
     var map={};
     rows.forEach(function(r){
@@ -423,17 +422,17 @@ function renderAverage(){
   });
 }
 
-/* ═══ 탭2: 커스텀 필터 ═══ */
+/* ═══ 탭2: 커스텀 필터 (★ 기록 범위 기준) ═══ */
 function buildSettingPanel(){
   var g=document.getElementById('settingGrid');
   var h='';
   EVENTS.forEach(function(ev){
-    h+='<div class="setting-item"><label>'+ev.label+' (점수)</label>';
-    h+='<div class="range-row"><input type="number" id="cmin_'+ev.key+'" placeholder="최소" min="0" max="100"><span class="range-sep">~</span><input type="number" id="cmax_'+ev.key+'" placeholder="최대" min="0" max="100"></div></div>';
+    h+='<div class="setting-item"><label>'+ev.label+' <span class="unit">(기록 · '+ev.unit+')</span></label>';
+    h+='<div class="range-row"><input type="number" id="cmin_'+ev.key+'" placeholder="최소" step="0.1"><span class="range-sep">~</span><input type="number" id="cmax_'+ev.key+'" placeholder="최대" step="0.1"></div></div>';
   });
-  h+='<div class="setting-item"><label>총점</label>';
+  h+='<div class="setting-item"><label>총점 <span class="unit">(점수)</span></label>';
   h+='<div class="range-row"><input type="number" id="cmin_total" placeholder="최소" min="0" max="600"><span class="range-sep">~</span><input type="number" id="cmax_total" placeholder="최대" min="0" max="600"></div></div>';
-  h+='<div class="setting-item"><label>평균</label>';
+  h+='<div class="setting-item"><label>평균 <span class="unit">(점수)</span></label>';
   h+='<div class="range-row"><input type="number" id="cmin_avg" placeholder="최소" min="0" max="100" step="0.1"><span class="range-sep">~</span><input type="number" id="cmax_avg" placeholder="최대" min="0" max="100" step="0.1"></div></div>';
   g.innerHTML=h;
 }
@@ -447,7 +446,7 @@ document.getElementById('resetCustom').addEventListener('click',function(){
 function renderCustom(){
   var rows=getFilteredRows();
 
-  /* ★ 조건 수집 – 안전한 ID 사용 */
+  /* ★ 조건 수집 — 종목은 기록(recIdx) 기준! */
   var conds=[];
   EVENTS.forEach(function(ev){
     var mnEl=document.getElementById('cmin_'+ev.key);
@@ -455,27 +454,27 @@ function renderCustom(){
     if(!mnEl||!mxEl)return;
     var mn=mnEl.value, mx=mxEl.value;
     if(mn!==''||mx!==''){
-      conds.push({idx:ev.scrIdx, min:mn!==''?parseFloat(mn):-Infinity, max:mx!==''?parseFloat(mx):Infinity, label:ev.label});
+      conds.push({idx:ev.recIdx, min:mn!==''?parseFloat(mn):-Infinity, max:mx!==''?parseFloat(mx):Infinity, label:ev.label, evKey:ev.key});
     }
   });
-  /* 총점 */
+  /* 총점 (점수 기준 유지) */
   var tmnEl=document.getElementById('cmin_total'), tmxEl=document.getElementById('cmax_total');
   if(tmnEl&&tmxEl){
     var tmn=tmnEl.value, tmx=tmxEl.value;
     if(tmn!==''||tmx!==''){
-      conds.push({idx:TOTAL_IDX, min:tmn!==''?parseFloat(tmn):-Infinity, max:tmx!==''?parseFloat(tmx):Infinity, label:'총점'});
+      conds.push({idx:TOTAL_IDX, min:tmn!==''?parseFloat(tmn):-Infinity, max:tmx!==''?parseFloat(tmx):Infinity, label:'총점', evKey:'total'});
     }
   }
-  /* 평균 */
+  /* 평균 (점수 기준 유지) */
   var amnEl=document.getElementById('cmin_avg'), amxEl=document.getElementById('cmax_avg');
   if(amnEl&&amxEl){
     var amn=amnEl.value, amx=amxEl.value;
     if(amn!==''||amx!==''){
-      conds.push({idx:AVG_IDX, min:amn!==''?parseFloat(amn):-Infinity, max:amx!==''?parseFloat(amx):Infinity, label:'평균'});
+      conds.push({idx:AVG_IDX, min:amn!==''?parseFloat(amn):-Infinity, max:amx!==''?parseFloat(amx):Infinity, label:'평균', evKey:'avg'});
     }
   }
 
-  /* ★ 필터링 — 총점이 0인 학생 제외 */
+  /* 필터링 — 총점 0 제외 */
   if(conds.length>0){
     rows=rows.filter(function(r){
       if(pf(r[TOTAL_IDX])===0)return false;
@@ -493,7 +492,11 @@ function renderCustom(){
   }
 
   rows.sort(function(a,b){return pf(b[TOTAL_IDX])-pf(a[TOTAL_IDX]);});
-  var condSet={};conds.forEach(function(c){condSet[c.idx]=true;});
+
+  /* 하이라이트할 컬럼 세트 (기록 인덱스 기준) */
+  var condRecSet={};
+  var condIdxSet={};
+  conds.forEach(function(c){condIdxSet[c.idx]=true;});
 
   var h='<div class="count-info">'+rows.length+'명</div>';
   h+='<div class="list-card"><table class="list-table"><thead><tr>';
@@ -514,12 +517,12 @@ function renderCustom(){
     h+='<td class="col-school">'+sc+'</td><td class="col-class">'+getClassBadge(cls)+'</td>';
     h+='<td>'+r[4]+'</td><td style="font-size:10px;color:#9ca3af">'+dt+'</td>';
     EVENTS.forEach(function(ev){
-      var hl=condSet[ev.scrIdx]?' class="highlight"':'';
-      h+='<td'+hl+'>'+(r[ev.recIdx]||'-')+' / <b>'+pf(r[ev.scrIdx])+'</b></td>';
+      var hl=condIdxSet[ev.recIdx]?' class="highlight"':'';
+      h+='<td'+hl+'><b>'+(r[ev.recIdx]||'-')+'</b> / '+pf(r[ev.scrIdx])+'</td>';
     });
-    var thl=condSet[TOTAL_IDX]?' class="highlight"':'';
+    var thl=condIdxSet[TOTAL_IDX]?' class="highlight"':'';
     h+='<td'+thl+' style="font-weight:800">'+pf(r[TOTAL_IDX])+'</td>';
-    var ahl=condSet[AVG_IDX]?' class="highlight"':'';
+    var ahl=condIdxSet[AVG_IDX]?' class="highlight"':'';
     h+='<td'+ahl+'>'+pf(r[AVG_IDX]).toFixed(1)+'</td></tr>';
   });
   h+='</tbody></table></div>';
