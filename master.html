@@ -35,7 +35,6 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 .total-badge{background:#eef2ff;color:var(--accent);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px}
 .logout-btn{background:none;border:1.5px solid #e5e7eb;border-radius:10px;padding:6px 14px;font-size:11px;font-weight:600;color:#6b7280;cursor:pointer;font-family:inherit}
 .logout-btn:active{background:#f3f4f6}
-/* ★ 추가: 네비게이션 버튼 */
 .nav-btn{display:inline-flex;align-items:center;gap:4px;background:var(--accent3);border:none;border-radius:10px;padding:6px 14px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;text-decoration:none;transition:opacity .15s}
 .nav-btn:hover{opacity:.85}
 .nav-btn:active{opacity:.7}
@@ -113,8 +112,8 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 </div>
 <div class="header-right">
 <span class="total-badge" id="totalBadge">0명</span>
-<!-- ★ 실기분석 이동 버튼 -->
-<a class="nav-btn" href="./analysis.html">📊 실기 분석</a>
+<!-- ★ 절대경로 + JS 이동으로 변경 -->
+<button class="nav-btn" onclick="location.href='https://finaluniv-web.github.io/dt2026/analysis.html'">📊 실기 분석</button>
 <button class="logout-btn" onclick="location.reload()">로그아웃</button>
 </div>
 </div>
@@ -138,7 +137,8 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 var MASTER_PW='final2026';
 var SID='1JT-y2ZF6GLQD4ZYzP8yxFp6flxxc_F_vCMXGdY-gogs';
 var INFO_URL='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent('1.인적사항');
-var BASE_URL='./index.html';
+/* ★ 절대경로로 변경 */
+var BASE_URL='https://finaluniv-web.github.io/dt2026/index.html';
 var allStudents=[];
 
 function parseRow(l){
@@ -235,7 +235,6 @@ function renderAll(){
   var total=list.length;
   var male=list.filter(function(s){return s['성별']==='남';}).length;
   var female=list.filter(function(s){return s['성별']==='여';}).length;
-  var g3=list.filter(function(s){return s['학년']==='3학년';}).length;
   var quit=list.filter(function(s){return (s['상태']||'').trim()==='퇴원';}).length;
   var rest=list.filter(function(s){return (s['상태']||'').trim()==='휴식';}).length;
   document.getElementById('totalBadge').textContent=total+'명';
