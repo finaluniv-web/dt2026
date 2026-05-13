@@ -35,6 +35,10 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 .total-badge{background:#eef2ff;color:var(--accent);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px}
 .logout-btn{background:none;border:1.5px solid #e5e7eb;border-radius:10px;padding:6px 14px;font-size:11px;font-weight:600;color:#6b7280;cursor:pointer;font-family:inherit}
 .logout-btn:active{background:#f3f4f6}
+/* ★ 추가: 네비게이션 버튼 */
+.nav-btn{display:inline-flex;align-items:center;gap:4px;background:var(--accent3);border:none;border-radius:10px;padding:6px 14px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;text-decoration:none;transition:opacity .15s}
+.nav-btn:hover{opacity:.85}
+.nav-btn:active{opacity:.7}
 
 .filter-bar{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .search-input{flex:1;min-width:160px;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-family:inherit;outline:none}
@@ -109,6 +113,8 @@ body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:
 </div>
 <div class="header-right">
 <span class="total-badge" id="totalBadge">0명</span>
+<!-- ★ 실기분석 이동 버튼 -->
+<a class="nav-btn" href="./analysis.html">📊 실기 분석</a>
 <button class="logout-btn" onclick="location.reload()">로그아웃</button>
 </div>
 </div>
@@ -141,14 +147,14 @@ function parseRow(l){
   r.push(c.trim());return r;
 }
 
-/* ★ 인적사항 전용 파서 (인덱스 기반) */
 function parseInfoCSV(t){
-  var ls=t.split('\n').filter(function(l){return l.trim();});
+  if(t.charCodeAt(0)===0xFEFF) t=t.substring(1);
+  var ls=t.split(/\r?\n/).filter(function(l){return l.trim();});
   if(ls.length<2) return [];
   return ls.slice(1).map(function(l){
     var c=parseRow(l);
     return {
-      'no':       c[0]||'',
+      'no':       (c[0]||'').replace(/[^0-9]/g,''),
       '이름':     c[1]||'',
       '성별':     c[2]||'',
       '학년':     c[3]||'',
@@ -174,7 +180,6 @@ function doLogin(){
 
 function loadStudents(){
   fetch(INFO_URL).then(function(r){return r.text();}).then(function(t){
-    /* ★ parseInfoCSV 사용 */
     allStudents=parseInfoCSV(t).filter(function(s){return s['이름']&&s['no'];});
     buildFilters();
     renderAll();
