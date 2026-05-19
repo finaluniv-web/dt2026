@@ -215,6 +215,16 @@ function parseFitnessCSV(t){
 }
 function pf(v){if(v===undefined||v===null||v==='')return 0;var n=parseFloat(v);return isNaN(n)?0:n;}
 
+/* ★ 날짜 표시 헬퍼 — 숫자든 한글이든 그대로 표시 */
+function formatDate(d){
+  if(!d)return '';
+  /* 숫자만 있는 경우(예: 260126) → 26.01.26 형식으로 변환 */
+  var nums=d.replace(/[^0-9]/g,'');
+  if(nums.length>=6 && d===nums) return '20'+nums.substring(0,2)+'.'+nums.substring(2,4)+'.'+nums.substring(4,6);
+  /* 그 외(26.01, 한글, 혼합 등) → 원본 그대로 */
+  return d;
+}
+
 function getClass(r){return classMap[r[1]+'|'+r[3]]||'';}
 function getClassBadge(cls){
   if(!cls)return'<span style="color:#d1d5db;font-size:9px">—</span>';
@@ -256,6 +266,13 @@ function loadData(){
   });
 }
 
+/* ★ 날짜 정렬용 — 숫자면 숫자순, 한글이면 문자순 */
+function dateSortKey(d){
+  var nums=d.replace(/[^0-9]/g,'');
+  if(nums.length>=4)return '0_'+nums;  /* 숫자는 앞에 */
+  return '1_'+d;                        /* 한글은 뒤에 */
+}
+
 function buildFilters(){
   var dates={},grades={},classes={};
   allFitness.forEach(function(r){
@@ -263,11 +280,14 @@ function buildFilters(){
     if(r[4])grades[r[4]]=1;
     var cls=getClass(r);if(cls)classes[cls]=1;
   });
+  /* ★ 날짜: 숫자/한글 상관없이 모두 드롭다운에 표시 */
   var ds=document.getElementById('filterDate');
-  Object.keys(dates).sort().reverse().forEach(function(d){
-    var o=document.createElement('option');o.value=d;
-    var p=d.replace(/\./g,'');
-    o.textContent=p.length>=6?('20'+p.substring(0,2)+'.'+p.substring(2,4)+'.'+p.substring(4,6)):d;
+  Object.keys(dates).sort(function(a,b){
+    return dateSortKey(b).localeCompare(dateSortKey(a));
+  }).forEach(function(d){
+    var o=document.createElement('option');
+    o.value=d;
+    o.textContent=formatDate(d);
     ds.appendChild(o);
   });
   var gs=document.getElementById('filterGrade');
@@ -298,18 +318,19 @@ function getFilteredRows(){
     if(q&&r[1].toLowerCase().indexOf(q)===-1&&(r[3]||'').toLowerCase().indexOf(q)===-1)return false;
     return true;
   });
+
+  /* ★ 최신기록 — 날짜가 한글이어도 문자열 비교로 최신 판단 */
   if(dt==='latest'){
     var map={};
     rows.forEach(function(r){
       var key=r[1]+'|'+r[2]+'|'+r[3];
-      if(!map[key]||r[0]>map[key][0])map[key]=r;
+      if(!map[key]||dateSortKey(r[0])>dateSortKey(map[key][0]))map[key]=r;
     });
     rows=Object.values(map);
   }
   return rows;
 }
 
-/* ═══ 탭 전환 ═══ */
 var currentTab='average';
 document.getElementById('tabBar').addEventListener('click',function(e){
   var btn=e.target.closest('.tab-btn');
@@ -389,11 +410,10 @@ function renderAverage(){
     var gd=r[2]==='남'?'<span class="gender-dot m"></span>남':'<span class="gender-dot f"></span>여';
     var sc=(r[3]||'').replace('고등학교','고');
     var cls=getClass(r);
-    var dt=r[0]||'';
     h+='<tr><td style="color:#d1d5db;font-size:10px">'+(i+1)+'</td>';
     h+='<td class="col-name">'+r[1]+'</td><td>'+gd+'</td>';
     h+='<td class="col-school">'+sc+'</td><td class="col-class">'+getClassBadge(cls)+'</td>';
-    h+='<td>'+r[4]+'</td><td style="font-size:10px;color:#9ca3af">'+dt+'</td>';
+    h+='<td>'+r[4]+'</td><td style="font-size:10px;color:#9ca3af">'+formatDate(r[0])+'</td>';
     EVENTS.forEach(function(ev){
       var s=pf(r[ev.scrIdx]);
       var c=s>avgMap[ev.key]?'above':(s<avgMap[ev.key]?'below':'');
@@ -422,7 +442,7 @@ function renderAverage(){
   });
 }
 
-/* ═══ 탭2: 커스텀 필터 (★ 기록 범위 기준) ═══ */
+/* ═══ 탭2: 커스텀 필터 (기록 범위) ═══ */
 function buildSettingPanel(){
   var g=document.getElementById('settingGrid');
   var h='';
@@ -445,8 +465,6 @@ document.getElementById('resetCustom').addEventListener('click',function(){
 
 function renderCustom(){
   var rows=getFilteredRows();
-
-  /* ★ 조건 수집 — 종목은 기록(recIdx) 기준! */
   var conds=[];
   EVENTS.forEach(function(ev){
     var mnEl=document.getElementById('cmin_'+ev.key);
@@ -457,24 +475,17 @@ function renderCustom(){
       conds.push({idx:ev.recIdx, min:mn!==''?parseFloat(mn):-Infinity, max:mx!==''?parseFloat(mx):Infinity, label:ev.label, evKey:ev.key});
     }
   });
-  /* 총점 (점수 기준 유지) */
   var tmnEl=document.getElementById('cmin_total'), tmxEl=document.getElementById('cmax_total');
   if(tmnEl&&tmxEl){
     var tmn=tmnEl.value, tmx=tmxEl.value;
-    if(tmn!==''||tmx!==''){
-      conds.push({idx:TOTAL_IDX, min:tmn!==''?parseFloat(tmn):-Infinity, max:tmx!==''?parseFloat(tmx):Infinity, label:'총점', evKey:'total'});
-    }
+    if(tmn!==''||tmx!=='')conds.push({idx:TOTAL_IDX, min:tmn!==''?parseFloat(tmn):-Infinity, max:tmx!==''?parseFloat(tmx):Infinity, label:'총점', evKey:'total'});
   }
-  /* 평균 (점수 기준 유지) */
   var amnEl=document.getElementById('cmin_avg'), amxEl=document.getElementById('cmax_avg');
   if(amnEl&&amxEl){
     var amn=amnEl.value, amx=amxEl.value;
-    if(amn!==''||amx!==''){
-      conds.push({idx:AVG_IDX, min:amn!==''?parseFloat(amn):-Infinity, max:amx!==''?parseFloat(amx):Infinity, label:'평균', evKey:'avg'});
-    }
+    if(amn!==''||amx!=='')conds.push({idx:AVG_IDX, min:amn!==''?parseFloat(amn):-Infinity, max:amx!==''?parseFloat(amx):Infinity, label:'평균', evKey:'avg'});
   }
 
-  /* 필터링 — 총점 0 제외 */
   if(conds.length>0){
     rows=rows.filter(function(r){
       if(pf(r[TOTAL_IDX])===0)return false;
@@ -492,11 +503,7 @@ function renderCustom(){
   }
 
   rows.sort(function(a,b){return pf(b[TOTAL_IDX])-pf(a[TOTAL_IDX]);});
-
-  /* 하이라이트할 컬럼 세트 (기록 인덱스 기준) */
-  var condRecSet={};
-  var condIdxSet={};
-  conds.forEach(function(c){condIdxSet[c.idx]=true;});
+  var condIdxSet={};conds.forEach(function(c){condIdxSet[c.idx]=true;});
 
   var h='<div class="count-info">'+rows.length+'명</div>';
   h+='<div class="list-card"><table class="list-table"><thead><tr>';
@@ -511,11 +518,10 @@ function renderCustom(){
     var gd=r[2]==='남'?'<span class="gender-dot m"></span>남':'<span class="gender-dot f"></span>여';
     var sc=(r[3]||'').replace('고등학교','고');
     var cls=getClass(r);
-    var dt=r[0]||'';
     h+='<tr><td style="color:#d1d5db;font-size:10px">'+(i+1)+'</td>';
     h+='<td class="col-name">'+r[1]+'</td><td>'+gd+'</td>';
     h+='<td class="col-school">'+sc+'</td><td class="col-class">'+getClassBadge(cls)+'</td>';
-    h+='<td>'+r[4]+'</td><td style="font-size:10px;color:#9ca3af">'+dt+'</td>';
+    h+='<td>'+r[4]+'</td><td style="font-size:10px;color:#9ca3af">'+formatDate(r[0])+'</td>';
     EVENTS.forEach(function(ev){
       var hl=condIdxSet[ev.recIdx]?' class="highlight"':'';
       h+='<td'+hl+'><b>'+(r[ev.recIdx]||'-')+'</b> / '+pf(r[ev.scrIdx])+'</td>';
@@ -573,14 +579,13 @@ function renderRanking(){
     var gd=r[2]==='남'?'<span class="gender-dot m"></span>남':'<span class="gender-dot f"></span>여';
     var sc=(r[3]||'').replace('고등학교','고');
     var cls=getClass(r);
-    var dt=r[0]||'';
     var medal=i===0?'🥇 ':i===1?'🥈 ':i===2?'🥉 ':'';
     var rCls=i<3?'style="font-weight:800;color:var(--accent)"':'style="color:#d1d5db;font-size:10px"';
     h+='<tr'+(i<3?' class="highlight"':'')+'>';
     h+='<td '+rCls+'>'+medal+(i+1)+'</td>';
     h+='<td class="col-name">'+r[1]+'</td><td>'+gd+'</td>';
     h+='<td class="col-school">'+sc+'</td><td class="col-class">'+getClassBadge(cls)+'</td>';
-    h+='<td>'+r[4]+'</td><td style="font-size:10px;color:#9ca3af">'+dt+'</td>';
+    h+='<td>'+r[4]+'</td><td style="font-size:10px;color:#9ca3af">'+formatDate(r[0])+'</td>';
     if(ev){
       h+='<td style="font-weight:700">'+r[ev.recIdx]+'</td>';
       h+='<td style="font-weight:700;color:var(--accent)">'+pf(r[ev.scrIdx])+'</td>';
