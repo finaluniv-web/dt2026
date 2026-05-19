@@ -186,7 +186,8 @@ function uURL(n){ return 'https://docs.google.com/spreadsheets/d/'+UNIV_SID+'/gv
 
 var URLS = {
   info:     sURL('1.인적사항'),
-  fitness:  sURL('2.실기테스트'),
+  /* ★ 변경: gviz → export 방식으로 변경하여 한글 날짜(레코드4 등) 지원 */
+  fitness:  'https://docs.google.com/spreadsheets/d/'+SID+'/export?format=csv&gid=636176609',
   mock:     sURL('3.모의고사성적'),
   gpa:      sURL('4.내신성적'),
   apply:    sURL('5.지원현황'),
@@ -231,20 +232,17 @@ function parseInfoCSV(t){
   if(t.charCodeAt(0)===0xFEFF) t=t.substring(1);
   var ls=t.split(/\r?\n/).filter(function(l){return l.trim();});
   if(ls.length<2) return [];
-  /* 첫 행이 헤더인지 확인하여 skip */
   var first=parseRow(ls[0]);
   var startIdx=1;
-  /* 첫 행의 첫 셀이 숫자가 아니면 헤더로 간주 */
   if(first[0] && isNaN(parseInt(first[0].replace(/\D/g,''),10))){
     startIdx=1;
   } else {
-    /* 헤더 없는 경우 (가능성 낮음) */
     startIdx=0;
   }
   var result=[];
   for(var i=startIdx;i<ls.length;i++){
     var c=parseRow(ls[i]);
-    if(!c[0] && !c[1]) continue; /* 빈 행 스킵 */
+    if(!c[0] && !c[1]) continue;
     result.push({
       'no':       (c[0]||'').replace(/[^0-9]/g,''),
       '이름':     c[1]||'',
@@ -260,17 +258,18 @@ function parseInfoCSV(t){
 }
 
 /* ── 날짜 ── */
+/* ★ 변경: 한글 날짜(레코드4 등) 지원하도록 수정 */
 function fDate(d){
-  if(!d||d.length<6)return d;
+  if(!d) return '';
   var s=d.replace(/\D/g,'');
-  if(s.length<6)return d;
-  return s.substring(2,4)+'.'+s.substring(4,6);
+  if(s.length>=6) return s.substring(2,4)+'.'+s.substring(4,6);
+  return d; /* 한글이나 짧은 문자열은 그대로 반환 */
 }
 function fullDate(d){
-  if(!d||d.length<6)return d;
+  if(!d) return '';
   var s=d.replace(/\D/g,'');
-  if(s.length<6)return d;
-  return '20'+s.substring(0,2)+'.'+s.substring(2,4)+'.'+s.substring(4,6);
+  if(s.length>=6) return '20'+s.substring(0,2)+'.'+s.substring(2,4)+'.'+s.substring(4,6);
+  return d; /* 한글이나 짧은 문자열은 그대로 반환 */
 }
 
 /* ── 차트 옵션 ── */
@@ -292,6 +291,21 @@ function findById(data,id){
   })||null;
 }
 
+/* ★ 변경: export CSV의 2줄 헤더를 자동 감지하고 건너뛰는 함수 */
+function detectFitnessHeaderRows(lines){
+  if(lines.length<2) return 1;
+  var row1=parseRow(lines[0]);
+  var row2=parseRow(lines[1]);
+  /* export CSV: 1행=종목 그룹명(배근력, 10m왕복...), 2행=날짜/이름/기록/점수 라벨 */
+  /* gviz CSV: 1행=날짜/이름/기록/점수 라벨 (헤더 1줄) */
+  /* 판별: 2행째에 "날짜"가 있으면 export 형태(2줄 헤더) */
+  if(row2[0] && row2[0].indexOf('날짜')!==-1) return 2;
+  /* 1행째에 "날짜"가 있으면 gviz 형태(1줄 헤더) */
+  if(row1[0] && row1[0].indexOf('날짜')!==-1) return 1;
+  /* 기본: 2줄 (export 형태로 추정) */
+  return 2;
+}
+
 /* ══════════════════════════════════════════════
    로그인
    ══════════════════════════════════════════════ */
@@ -308,7 +322,6 @@ function initLogin(){
   fetch(URLS.info).then(function(r){return r.text();}).then(function(text){
     allInfoData=parseInfoCSV(text);
 
-    /* ★ 디버그: 파싱 결과 확인 (문제 해결 후 삭제 가능) */
     console.log('parseInfoCSV result:', allInfoData.length, 'rows');
     console.log('looking for id:', studentId);
     if(allInfoData.length>0) console.log('first row no:', JSON.stringify(allInfoData[0]['no']), 'name:', allInfoData[0]['이름']);
@@ -322,7 +335,6 @@ function initLogin(){
       return;
     }
 
-    /* ★ 퇴원/휴식 학생 잠금 */
     var status=(me['상태']||'').trim();
     if(status==='퇴원'||status==='휴식'){
       document.getElementById('loginName').textContent=me['이름'];
@@ -336,7 +348,6 @@ function initLogin(){
     studentName=me['이름']; studentSchool=me['학교']||'';
     document.title=studentName+' - FINAL 기록지';
 
-    /* ★ 마스터 자동 로그인 */
     var autoPw=new URLSearchParams(location.search).get('pw');
     if(autoPw && String(me['비밀번호']).trim()===autoPw.trim()){
       document.getElementById('loginScreen').style.display='none';
@@ -420,17 +431,24 @@ function renderProfile(info,fc,mc){
 /* ══════════════════════════════════════════════
    실기기록
    ══════════════════════════════════════════════ */
+/* ★ 변경: export CSV 2줄 헤더 자동 감지 적용 */
 function renderFitness(raw){
   if(raw.charCodeAt(0)===0xFEFF) raw=raw.substring(1);
   var lines=raw.split(/\r?\n/).filter(function(l){return l.trim();});
-  if(lines.length<2)return 0;
+  if(lines.length<3)return 0;
+
+  /* ★ 변경: 헤더 줄 수 자동 감지 */
+  var headerSkip=detectFitnessHeaderRows(lines);
+  /* 실제 데이터 헤더(날짜,이름,성별,...) 행 가져오기 */
+  var headerLine=lines[headerSkip-1];
+
   var rows=[];
-  for(var i=1;i<lines.length;i++){
+  for(var i=headerSkip;i<lines.length;i++){
     var c=parseRow(lines[i]);
     if(c[1]===studentName&&c[3]===studentSchool) rows.push(c);
   }
   if(!rows.length){document.getElementById('fitNone').style.display='';return 0;}
-  rows.sort(function(a,b){return a[0].localeCompare(b[0]);});
+  rows.sort(function(a,b){return (a[0]||'').localeCompare(b[0]||'');});
 
   var items=[
     {name:'배근력',u:'kg',ri:5,si:6,color:'#ec4899'},
@@ -442,7 +460,7 @@ function renderFitness(raw){
   ];
 
   /* ★ 헤더에서 총점 열 인덱스 찾기 */
-  var headerCols=parseRow(lines[0]);
+  var headerCols=parseRow(headerLine);
   var tI=-1;
   for(var hi=0;hi<headerCols.length;hi++){
     if(headerCols[hi].indexOf('총점')!==-1){tI=hi;break;}
